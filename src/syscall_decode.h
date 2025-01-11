@@ -12,7 +12,8 @@ private:
 public:
   // provide human-readable syscall errors
   static std::string syscall_err(const struct user_regs_struct &regs);
-  static std::string_view syscall_name(const struct user_regs_struct &regs);
+  static constexpr std::string_view
+  syscall_name(const struct user_regs_struct &regs);
 };
 
 #endif // !CAESAR_SYSCALL_DECODE_H

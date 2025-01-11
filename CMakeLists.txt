@@ -13,6 +13,12 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(fmt)
 
 project(caesar VERSION 0.1.0)
-add_executable(caesar src/main.cpp src/syscall_decode.h src/syscall_decode.cpp)
+add_executable(caesar
+    src/main.cpp
+    src/syscall_decode.h
+    src/syscall_decode.cpp
+    src/process.h
+    src/process.cpp
+)
 target_link_libraries(caesar fmt::fmt)
 
