@@ -1,18 +1,22 @@
-#ifndef CAESAR_INTERPRETER_HPP
-#define CAESAR_INTERPRETER_HPP
+#ifndef INTERPRETER_HPP
+#define INTERPRETER_HPP
 
-#include "visitor.hpp"
+#include "expr.hpp"
 
-class Interpreter : public Visitor {
- private:
-  double m_ans;
+class Interpreter : public IExprVisitor {
+private:
+  Object evaluate(const std::unique_ptr<Expr> &expr);
+  bool isTruthy(const Object &object);
+  bool isEqual(const Object &lhs, const Object &rhs);
+  void checkNumberOperand(const Token &op, const Object &operand);
+  std::string stringify(const Object &object);
 
- public:
-  explicit Interpreter();
-  CONCRETE_VISIT_METHOD_DECL(BinaryExpr);
-  CONCRETE_VISIT_METHOD_DECL(NumLiteral);
-
-  double answer() const;
+public:
+  Object visitLiteralExpr(const Literal &expr) override;
+  Object visitGroupingExpr(const Grouping &expr) override;
+  Object visitUnaryExpr(const Unary &expr) override;
+  Object visitBinaryExpr(const Binary &expr) override;
+  void interpret(const std::unique_ptr<Expr> &expression);
 };
 
-#endif
+#endif // !INTERPRETER_HPP

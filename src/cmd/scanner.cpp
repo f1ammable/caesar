@@ -1,109 +1,183 @@
 #include "scanner.hpp"
 
-#include "fmt/format.h"
+#include <utility>
+#include <variant>
 
-void Scanner::initToken() {
-  m_token = std::make_shared<Token>("", m_cs.currentRow(), m_cs.currentCol(),
-                                    Token::None);
-}
+#include "error.hpp"
+#include "util.hpp"
 
-void Scanner::setText(const std::string &text) { m_token->value = text; }
+Scanner::Scanner(std::string source) : m_source(std::move(source)) {}
 
-void Scanner::setType(const int type) { m_token->type = type; }
-
-void Scanner::enterChar() { m_token->value.append(1, currentChar()); }
-
-bool Scanner::intLiteral() {
-  if (!isdigit(currentChar())) {
-    return false;
+std::vector<Token> Scanner::scanTokens() {
+  while (!isAtEnd()) {
+    m_start = m_current;
+    scanToken();
   }
 
-  while (isdigit(currentChar())) {
-    enterChar();
-    nextChar();
-  }
-  return true;
+  m_tokens.emplace_back(TokenType::END, "", std::monostate{}, m_line);
+  return m_tokens;
 }
 
-bool Scanner::numLiteral() {
-  setType(Token::Number);
+bool Scanner::isAtEnd() const { return m_current >= m_source.length(); }
 
-  if (isdigit(currentChar())) {
-    intLiteral();
-    if (currentChar() == '.') {
-      enterChar();
-      nextChar();
-      if (isdigit(currentChar())) {
-        intLiteral();
+void Scanner::scanToken() {
+  char c = advance();
+  switch (c) {
+  case '(':
+    addToken(TokenType::LEFT_PAREN);
+    break;
+  case ')':
+    addToken(TokenType::RIGHT_PAREN);
+    break;
+  case '{':
+    addToken(TokenType::LEFT_BRACE);
+    break;
+  case '}':
+    addToken(TokenType::RIGHT_BRACE);
+    break;
+  case ',':
+    addToken(TokenType::COMMA);
+    break;
+  case '.':
+    addToken(TokenType::DOT);
+    break;
+  case '-':
+    addToken(TokenType::MINUS);
+    break;
+  case '+':
+    addToken(TokenType::PLUS);
+    break;
+  case ';':
+    addToken(TokenType::SEMICOLON);
+    break;
+  case '*':
+    addToken(TokenType::STAR);
+    break;
+  case '!':
+    addToken(match('=') ? TokenType::BANG_EQUAL : TokenType::BANG);
+    break;
+  case '=':
+    addToken(match('=') ? TokenType::EQUAL_EQUAL : TokenType::EQUAL);
+    break;
+  case '<':
+    addToken(match('=') ? TokenType::LESS_EQUAL : TokenType::LESS);
+    break;
+  case '>':
+    addToken(match('=') ? TokenType::GREATER_EQUAL : TokenType::GREATER);
+    break;
+  case '/':
+    if (match('/')) {
+      while (peek() != '\n' && !isAtEnd()) {
+        advance();
       }
+    } else {
+      addToken(TokenType::SLASH);
     }
-  } else if (currentChar() == '.') {
-    enterChar();
-    nextChar();
-    if (!intLiteral()) {
-      return false;
+    break;
+  case ' ':
+  case '\r':
+  case '\t':
+    break;
+  case '\n':
+    m_line++;
+    break;
+  case '"':
+    string();
+    break;
+  default:
+    if (isdigit(c)) {
+      number();
+    } else if (isalpha(c)) {
+      identifier();
+    } else {
+      e.error(m_line, "Unexpected character");
     }
-  } else {
-    return false;
+    break;
   }
+}
+
+char Scanner::advance() { return m_source[m_current++]; }
+
+void Scanner::addToken(TokenType tokenType) {
+  addToken(tokenType, std::monostate{});
+}
+
+bool Scanner::match(const char expected) {
+  if (isAtEnd())
+    return false;
+  if (m_source[m_current] != expected)
+    return false;
+
+  m_current++;
   return true;
 }
 
-Scanner::Scanner(CharStream &cs) : m_cs(cs) { nextToken(); }
+char Scanner::peek() const {
+  if (isAtEnd())
+    return '\0';
+  return m_source[m_current];
+}
 
-std::shared_ptr<Token> Scanner::currentToken() const { return m_token; }
-
-std::shared_ptr<Token> Scanner::nextToken() {
-  skipWhitespace();
-  initToken();
-
-  if (char c; (c = currentChar()) != EOF) {
-    switch (c) {
-      case '+':
-        setType(Token::Operator);
-        enterChar();
-        nextChar();
-        break;
-      case '-':
-        setType(Token::Operator);
-        enterChar();
-        nextChar();
-        break;
-      case '0':
-      case '1':
-      case '2':
-      case '3':
-      case '4':
-      case '5':
-      case '6':
-      case '7':
-      case '8':
-      case '9':
-      case '.':
-        numLiteral();
-        break;
-      default:
-        throw "Invalid char!";
+void Scanner::string() {
+  while (peek() != '"' && !isAtEnd()) {
+    if (peek() == '\n') {
+      m_line++;
     }
-  } else {
-    setType(EOF);
-    setText("EOF");
+    advance();
   }
-  std::cout << fmt::format("Scanning token: {} with type {}\n", m_token->value,
-                           m_token->type);
-  return m_token;
+
+  if (isAtEnd()) {
+    e.error(m_line, "Unterminated string");
+    return;
+  }
+
+  advance();
+
+  std::string value = m_source.substr(m_start + 1, m_current - m_start - 2);
+  addToken(TokenType::STRING, value.data());
 }
 
-char Scanner::currentChar() const { return m_cs.currentChar(); }
+void Scanner::number() {
+  while (isdigit(peek())) {
+    advance();
+  }
 
-char Scanner::nextChar() { return m_cs.nextChar(); }
+  if (peek() == '.' && isdigit(peekNext())) {
+    advance();
 
-bool Scanner::isWhitespace(char c) const {
-  return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+    while (isdigit(peek())) {
+      advance();
+    }
+  }
+
+  std::string text = m_source.substr(m_start, m_current - m_start);
+  auto value = detail::parseNumber(text);
+
+  auto add_token = [this]<typename T>(T &&arg) {
+    addToken(TokenType::NUMBER, std::move(arg));
+  };
+
+  std::visit(add_token, value);
 }
 
-void Scanner::skipWhitespace() {
-  while (isWhitespace(currentChar())) {
-    nextChar();
+char Scanner::peekNext() const {
+  if (m_current + 1 >= m_source.length()) {
+    return '\0';
   }
+  return m_source[m_current + 1];
+}
+
+void Scanner::identifier() {
+  while (isalnum(peek()))
+    advance();
+
+  const std::string text = m_source.substr(m_start, m_current - m_start);
+  TokenType type;
+  try {
+    type = m_keywords.at(text);
+  } catch (std::out_of_range &e) {
+    type = TokenType::IDENTIFIER;
+  }
+
+  addToken(type);
 }

@@ -1,45 +1,173 @@
 #include "parser.hpp"
+#include "error.hpp"
+#include "parse_error.hpp"
+#include "stmnt.hpp"
+#include "token.hpp"
+#include <memory>
+#include <variant>
 
-std::shared_ptr<Token> Parser::currentToken() const {
-  return m_scanner.currentToken();
+Parser::Parser(std::vector<Token> tokens) : m_tokens(std::move(tokens)) {}
+
+std::unique_ptr<Expr> Parser::expression() { return equality(); }
+
+std::unique_ptr<Expr> Parser::equality() {
+  std::unique_ptr<Expr> expr = comparison();
+
+  while (match(TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL)) {
+    Token op = previous();
+    std::unique_ptr<Expr> right = comparison();
+    expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
+  }
+
+  return expr;
 }
 
-std::shared_ptr<Token> Parser::nextToken() { return m_scanner.nextToken(); }
-
-bool Parser::match(const std::shared_ptr<Token>& token, const int type) {
-  if (token->type != type) {
+bool Parser::check(TokenType type) {
+  if (isAtEnd())
     return false;
-  }
-  nextToken();
-  return true;
+  return peek().m_type == type;
 }
 
-Parser::Parser(const Scanner& scanner) : m_scanner(std::move(scanner)) {}
-
-std::shared_ptr<AbstractNode> Parser::expr() {
-  auto root = num();
-
-  while (currentToken()->type == Token::Operator) {
-    auto token = currentToken();
-    nextToken();
-    auto lhs = root;
-    auto rhs = num();
-    root = std::make_shared<BinaryExpr>(token);
-    root->addChild(lhs);
-    root->addChild(rhs);
-  }
-
-  if (currentToken()->type == EOF) {
-    std::cout << "accepted!\n";
-  } else {
-    throw "Syntax Error: Unexpected token!";
-  }
-  return root;
+Token Parser::advance() {
+  if (!isAtEnd())
+    m_current++;
+  return previous();
 }
 
-std::shared_ptr<AbstractNode> Parser::num() {
-  if (auto token = currentToken(); match(token, Token::Number)) {
-    return std::make_shared<NumLiteral>(token);
+bool Parser::isAtEnd() { return peek().m_type == TokenType::END; }
+
+Token Parser::peek() { return m_tokens[m_current]; }
+
+Token Parser::previous() { return m_tokens[m_current - 1]; }
+
+std::unique_ptr<Expr> Parser::term() {
+  std::unique_ptr<Expr> expr = factor();
+
+  while (match(TokenType::MINUS, TokenType::PLUS)) {
+    Token op = previous();
+    std::unique_ptr<Expr> right = factor();
+    expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
   }
-  throw "Syntax Error: Number expected!";
+
+  return expr;
+}
+
+std::unique_ptr<Expr> Parser::factor() {
+  std::unique_ptr<Expr> expr = unary();
+
+  while (match(TokenType::SLASH, TokenType::STAR)) {
+    Token op = previous();
+    std::unique_ptr<Expr> right = unary();
+    expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
+  }
+
+  return expr;
+}
+
+std::unique_ptr<Expr> Parser::unary() {
+  if (match(TokenType::BANG, TokenType::MINUS)) {
+    Token op = previous();
+    std::unique_ptr<Expr> right = unary();
+    return std::make_unique<Unary>(op, std::move(right));
+  }
+  return primary();
+}
+
+std::unique_ptr<Expr> Parser::primary() {
+  if (match(TokenType::FALSE))
+    return std::make_unique<Literal>(false);
+  if (match(TokenType::TRUE))
+    return std::make_unique<Literal>(true);
+  if (match(TokenType::NIL))
+    return std::make_unique<Literal>(std::monostate{});
+
+  if (match(TokenType::NUMBER, TokenType::STRING)) {
+    return std::make_unique<Literal>(previous().m_literal);
+  }
+
+  if (match(TokenType::LEFT_PAREN)) {
+    std::unique_ptr<Expr> e = expression();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.");
+    return std::make_unique<Grouping>(std::move(e));
+  }
+
+  throw error(peek(), "Expected expression.");
+}
+
+std::unique_ptr<Expr> Parser::comparison() {
+  std::unique_ptr<Expr> expr = term();
+
+  while (match(TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS,
+               TokenType::LESS_EQUAL)) {
+    Token op = previous();
+    std::unique_ptr<Expr> right = term();
+    expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
+  }
+
+  return expr;
+}
+
+Token Parser::consume(TokenType type, const std::string &msg) {
+  if (check(type))
+    return advance();
+
+  throw error(peek(), msg);
+}
+
+ParseError Parser::error(Token token, const std::string &msg) {
+  Err &err = Err::getInstance();
+  err.error(token, msg);
+  return ParseError();
+}
+
+void Parser::synchronise() {
+  advance();
+
+  while (!isAtEnd()) {
+    if (previous().m_type == TokenType::SEMICOLON)
+      return;
+
+    switch (peek().m_type) {
+    case TokenType::CLASS:
+    case TokenType::FUN:
+    case TokenType::VAR:
+    case TokenType::FOR:
+    case TokenType::IF:
+    case TokenType::WHILE:
+    case TokenType::PRINT:
+    case TokenType::RETURN:
+      return;
+    }
+
+    advance();
+  }
+}
+
+std::unique_ptr<Stmnt> Parser::statement() {
+  if (match(TokenType::PRINT))
+    return printStmnt();
+
+  return exprStmnt();
+}
+
+std::unique_ptr<Stmnt> Parser::printStmnt() {
+  std::unique_ptr<Expr> value = expression();
+  consume(TokenType::SEMICOLON, "Expect ';' after value.");
+  return std::make_unique<PrintStmnt>(std::move(value));
+}
+
+std::unique_ptr<Stmnt> Parser::exprStmnt() {
+  std::unique_ptr<Expr> expr = expression();
+  consume(TokenType::SEMICOLON, "Expect ';' after expression.");
+  return std::make_unique<ExprStmnt>(std::move(expr));
+}
+
+std::vector<std::unique_ptr<Stmnt>> Parser::parse() {
+  std::vector<std::unique_ptr<Stmnt>> statements;
+
+  while (!isAtEnd()) {
+    statements.emplace_back(statement());
+  }
+
+  return statements;
 }

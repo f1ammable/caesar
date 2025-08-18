@@ -1,32 +1,51 @@
-#ifndef CAESAR_SCANNER_HPP
-#define CAESAR_SCANNER_HPP
+#ifndef SCANNER_H
+#define SCANNER_H
+#include <map>
+#include <string>
+#include <vector>
 
-#include <memory>
-
+#include "error.hpp"
 #include "token.hpp"
-#include "charstream.hpp"
 
 class Scanner {
 private:
-    CharStream& m_cs;
-    std::shared_ptr<Token> m_token;
+  Err &e = Err::getInstance();
+  const std::string m_source;
+  std::vector<Token> m_tokens;
+  int m_start = 0;
+  int m_current = 0;
+  int m_line = 1;
+  std::map<std::string, TokenType> m_keywords = {
+      {"and", TokenType::AND},       {"class", TokenType::CLASS},
+      {"else", TokenType::ELSE},     {"false", TokenType::FALSE},
+      {"for", TokenType::FOR},       {"fun", TokenType::FUN},
+      {"if", TokenType::IF},         {"nil", TokenType::NIL},
+      {"or", TokenType::OR},         {"print", TokenType::PRINT},
+      {"return", TokenType::RETURN}, {"super", TokenType::SUPER},
+      {"this", TokenType::THIS},     {"true", TokenType::TRUE},
+      {"var", TokenType::VAR},       {"while", TokenType::WHILE},
+  };
 
-    void initToken();
-    void setText(const std::string &text);
-    void setType(int type);
-    void enterChar();
-    bool intLiteral();
-    bool numLiteral();
+  [[nodiscard]] bool isAtEnd() const;
+  void scanToken();
+  char advance();
+  void addToken(TokenType tokenType);
+  template <typename T>
+    requires std::constructible_from<Object, T>
+  void addToken(TokenType tokenType, const T &literal) {
+    const std::string text = m_source.substr(m_start, m_current - m_start);
+    m_tokens.emplace_back(tokenType, text, literal, m_line);
+  }
+  bool match(char expected);
+  [[nodiscard]] char peek() const;
+  void string();
+  void number();
+  [[nodiscard]] char peekNext() const;
+  void identifier();
 
 public:
-    explicit Scanner(CharStream &cs);
-    std::shared_ptr<Token> currentToken() const;
-    std::shared_ptr<Token> nextToken();
-    char currentChar() const;
-    char nextChar();
-    bool isWhitespace(char c) const;
-    void skipWhitespace();
+  explicit Scanner(std::string source);
+  std::vector<Token> scanTokens();
 };
-
 
 #endif
