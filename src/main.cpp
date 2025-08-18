@@ -1,93 +1,64 @@
-#include <fmt/format.h>
-#include <sys/ptrace.h>
-#include <sys/reg.h>
-#include <sys/syscall.h>
-#include <sys/types.h>
-#include <sys/user.h>
-#include <sys/wait.h>
-#include <unistd.h>
-
-#include <cstdlib>
-#include <cstring>
+#include <fstream>
 #include <iostream>
-#include <memory>
-#include <string>
+#include <sstream>
 
-#include "cmd/charstream.hpp"
+#include "cmd/error.hpp"
+#include "cmd/expr.hpp"
 #include "cmd/interpreter.hpp"
 #include "cmd/parser.hpp"
 #include "cmd/scanner.hpp"
-#include "process.h"
-#include "syscall_decode.h"
+#include "cmd/token.hpp"
 
-int main(int argc, char **argv, char **envp) {
+Err &e = Err::getInstance();
+
+void run(const std::string &src) {
+  auto s = Scanner(src);
+  const std::vector<Token> tokens = s.scanTokens();
+  Parser p = Parser(tokens);
+  std::unique_ptr<Expr> expr = p.parse();
+
+  if (e.hadError) return;
+
+  Interpreter interpreter = Interpreter();
+  interpreter.interpret(expr);
+}
+
+void runFile(const std::string &path) {
+  std::ifstream file(path);
+  std::stringstream buffer;
+  buffer << file.rdbuf();
+  run(buffer.str());
+  if (e.hadError) exit(65);
+  if (e.hadRuntimeError) exit(70);
+}
+
+void runPrompt() {
+  std::string line;
+
   for (;;) {
-    try {
-      std::cout << "> ";
-      std::string input;
-      std::cin >> input;
+    line.clear();
+    std::cout << "> ";
+    std::getline(std::cin, line);
+    if (line.empty()) break;
+    run(line);
+    e.hadError = false;
+  }
+}
 
-      if (input.empty()) break;
-
-      CharStream cs(input);
-      Scanner scanner(cs);
-      Parser parser(scanner);
-
-      auto ast = parser.expr();
-
-      Interpreter interpreter{};
-
-      ast->accept(&interpreter);
-      std::cout << interpreter.answer() << '\n';
-    } catch (const char *msg) {
-      std::cout << msg << '\n';
+int main(int argc, char **argv) {
+  try {
+    if (argc > 2) {
+      std::cout << std::format("Usage: {} [script]\n", argv[0]);
+      return 64;
+    } else if (argc == 2) {
+      runFile(argv[1]);
+    } else {
+      runPrompt();
     }
+  } catch (const std::exception &e) {
+    std::cerr << std::format("Exception: {}\n", e.what());
+    return 1;
   }
 
-  // if (argc < 2) {
-  //   std::cout << fmt::format("Usage: $ {} <executable> \n", argv[0]);
-  //   return -1;
-  // }
-
-  // auto p = std::make_unique<Process>(fork());
-  // auto pid = p->pid();
-  // auto status = p->status;
-  //
-  // if (pid == -1) {
-  //   std::cerr << fmt::format("Error forking {}\n", strerror(errno));
-  //   return -1;
-  // }
-  //
-  // // child
-  // if (pid == 0) {
-  //   if (ptrace(PTRACE_TRACEME, 0, 0, 0)) {
-  //     std::cerr << fmt::format("Error setting TRACEME {}\n",
-  //     strerror(errno)); return -1;
-  //   }
-  //   // use /bin/ls for now
-  //   char *args[] = {(char *)"ls", NULL};
-  //   execve("/bin/ls", args, envp);
-  // }
-  //
-  // // parent
-  // else {
-  //   waitpid(pid, &status, 0);
-  //   p->wait_status();
-  //   // this works but not well
-  //   while (WIFSTOPPED(status)) {
-  //     struct user_regs_struct regs = p->regs();
-  //     long long rax_dec = (long long)regs.rax;
-  //     long ins = ptrace(PTRACE_PEEKTEXT, pid, regs.rip, NULL);
-  //     std::cout << fmt::format("rip: {:#x} rax: {}\n", regs.rip,
-  //                              (rax_dec < 0 && rax_dec > -4096)
-  //                                  ? SyscallDecoder::syscall_err(regs)
-  //                                  : std::to_string(regs.rax));
-  //     std::cout << "Bytes: ";
-  //     for (int i = 0; i < 8; i++) {
-  //       std::cout << fmt::format("{:02x} ", (ins >> (i * 8)) & 0xFF);
-  //     }
-  //     std::cout << "\n";
-  //     p->status = p->sstep();
-  //   }
-  // }
+  return 0;
 }
