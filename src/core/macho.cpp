@@ -7,6 +7,8 @@
 
 #include <iostream>
 
+#include "util.hpp"
+
 // Adapted from https://lowlevelbits.org/parsing-mach-o-files/
 
 void Macho::dump_segments(std::ifstream& file) {
@@ -40,7 +42,7 @@ void Macho::dump_mach_header(std::ifstream& file, int offset, int is_64,
     constexpr size_t header_size = sizeof(struct mach_header_64);
     auto header = load_bytes<mach_header_64>(file, offset);
     if (is_swap) {
-      swap_mach_header_64(header.get(), (NXByteOrder)0);
+      SwapDescriptor<mach_header_64>::swap(header.get());
     }
 
     ncmds = header->ncmds;
@@ -52,7 +54,7 @@ void Macho::dump_mach_header(std::ifstream& file, int offset, int is_64,
     int header_size = sizeof(struct mach_header);
     auto header = load_bytes<mach_header>(file, offset);
     if (is_swap) {
-      swap_mach_header(header.get(), (NXByteOrder)0);
+      SwapDescriptor<mach_header>::swap(header.get());
     }
   }
 
@@ -64,10 +66,10 @@ void Macho::dump_segment_commands(std::ifstream& file, int offset, int is_swap,
   int actual_offset = offset;
   for (int i = 0; i < ncmds; i++) {
     auto cmd = load_bytes<load_command>(file, actual_offset);
-    if (is_swap) swap_load_command(cmd.get(), (NXByteOrder)0);
+    if (is_swap) SwapDescriptor<load_command>::swap(cmd.get());
     if (cmd->cmd == LC_SEGMENT_64) {
       auto segment = load_bytes<segment_command_64>(file, actual_offset);
-      if (is_swap) swap_segment_command_64(segment.get(), (NXByteOrder)0);
+      if (is_swap) SwapDescriptor<segment_command_64>::swap(segment.get());
       std::cout << std::format("segname: {}", segment->segname) << std::endl;
     }
     actual_offset += cmd->cmdsize;

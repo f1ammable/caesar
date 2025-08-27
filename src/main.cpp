@@ -68,7 +68,6 @@
 
 
 int main() {
-  // std::cout << "Hello world!" << std::endl;
   std::ifstream f("lol", std::ios::in | std::ios::binary);
   Macho::dump_segments(f);
   f.close();
