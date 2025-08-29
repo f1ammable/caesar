@@ -69,6 +69,7 @@
 
 int main() {
   std::ifstream f("lol", std::ios::in | std::ios::binary);
-  Macho::dump_segments(f);
+  Macho m = Macho(f);
+  m.dump();
   f.close();
 }

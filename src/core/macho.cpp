@@ -5,72 +5,62 @@
 #include <mach-o/swap.h>
 #include <mach/machine.h>
 
+#include <cstring>
 #include <iostream>
-
-#include "util.hpp"
 
 // Adapted from https://lowlevelbits.org/parsing-mach-o-files/
 
-void Macho::dump_segments(std::ifstream& file) {
-  uint32_t magic = read_magic(file, 0);
-  int is_64 = is_magic_64(magic);
-  int is_swap = should_swap_bytes(magic);
-  dump_mach_header(file, 0, is_64, is_swap);
-}
+void Macho::dump() { dump_mach_header(0); }
 
-uint32_t Macho::read_magic(std::ifstream& file, int offset) {
+void Macho::read_magic(int offset) {
   uint32_t magic;
-  file.seekg(offset, std::ios::beg);
-  file.read(std::bit_cast<char*>(&magic), sizeof(uint32_t));
-  return magic;
+  this->file.seekg(offset, std::ios::beg);
+  this->file.read(std::bit_cast<char*>(&magic), sizeof(uint32_t));
+  this->magic = magic;
 }
 
-int Macho::is_magic_64(uint32_t magic) {
-  return magic == MH_MAGIC_64 || magic == MH_CIGAM_64;
+void Macho::is_magic_64() {
+  if (magic == MH_MAGIC_64 || magic == MH_CIGAM_64) this->is_64 = true;
 }
 
-int Macho::should_swap_bytes(uint32_t magic) {
-  return magic == MH_CIGAM || magic == MH_CIGAM_64;
+void Macho::maybe_swap_bytes() {
+  if (magic == MH_CIGAM || magic == MH_CIGAM_64) this->is_swap = true;
 }
 
-void Macho::dump_mach_header(std::ifstream& file, int offset, int is_64,
-                             int is_swap) {
+void Macho::dump_mach_header(int offset) {
   uint32_t ncmds;
   int load_cmds_offset = offset;
 
-  if (is_64) {
+  if (this->is_64) {
     constexpr size_t header_size = sizeof(struct mach_header_64);
-    auto header = load_bytes<mach_header_64>(file, offset);
-    if (is_swap) {
-      SwapDescriptor<mach_header_64>::swap(header.get());
-    }
-
+    auto header = this->load_bytes_and_maybe_swap<mach_header_64>(offset);
     ncmds = header->ncmds;
     load_cmds_offset += header_size;
-
-    std::cout << cpu_type_name(header->cputype) << std::endl;
-
+    std::cout << this->cpu_type_name(header->cputype) << std::endl;
   } else {
     int header_size = sizeof(struct mach_header);
-    auto header = load_bytes<mach_header>(file, offset);
-    if (is_swap) {
-      SwapDescriptor<mach_header>::swap(header.get());
-    }
+    auto header = this->load_bytes_and_maybe_swap<mach_header>(offset);
   }
 
-  dump_segment_commands(file, load_cmds_offset, is_swap, ncmds);
+  dump_segment_commands(load_cmds_offset, ncmds);
 }
 
-void Macho::dump_segment_commands(std::ifstream& file, int offset, int is_swap,
-                                  uint32_t ncmds) {
+void Macho::dump_segment_commands(int offset, uint32_t ncmds) {
   int actual_offset = offset;
   for (int i = 0; i < ncmds; i++) {
-    auto cmd = load_bytes<load_command>(file, actual_offset);
-    if (is_swap) SwapDescriptor<load_command>::swap(cmd.get());
+    auto cmd = this->load_bytes_and_maybe_swap<load_command>(actual_offset);
     if (cmd->cmd == LC_SEGMENT_64) {
-      auto segment = load_bytes<segment_command_64>(file, actual_offset);
-      if (is_swap) SwapDescriptor<segment_command_64>::swap(segment.get());
-      std::cout << std::format("segname: {}", segment->segname) << std::endl;
+      auto segment =
+          this->load_bytes_and_maybe_swap<segment_command_64>(actual_offset);
+      std::cout << std::format(
+                       "segname: {:<25} offset: 0x{:<12x} vmaddr: 0x{:<18x} "
+                       "vmsize: 0x{:x}",
+                       segment->segname, segment->fileoff, segment->vmaddr,
+                       segment->vmsize)
+                << std::endl;
+      if (std::string(segment->segname) == "__TEXT") {
+        dump_sections(actual_offset + sizeof(segment_command_64), actual_offset + cmd->cmdsize);
+      }
     }
     actual_offset += cmd->cmdsize;
   }
@@ -81,4 +71,19 @@ std::string Macho::cpu_type_name(cpu_type_t cpu_type) {
     if (cpu_type == x.cpu_type) return x.cpu_name;
   }
   return "unknown";
+}
+
+void Macho::dump_sections(int offset, int end) {
+  int actual_offset = offset;
+  while (actual_offset != end) {
+    auto section = this->load_bytes_and_maybe_swap<section_64>(actual_offset);
+    std::cout << std::format("Section: {}; Address: 0x{:x}", section->sectname, section->addr) << std::endl;
+    actual_offset += sizeof(section_64);
+  }
+}
+
+Macho::Macho(std::ifstream& f) : file(f) {
+  read_magic(0);
+  is_magic_64();
+  maybe_swap_bytes();
 }

@@ -59,4 +59,44 @@ struct SwapDescriptor<segment_command_64> {
   }
 };
 
+template <>
+struct SwapDescriptor<section_64> {
+static void swap(section_64* section) {
+    char* base = reinterpret_cast<char*>(section);
+
+    struct FieldInfo {
+      size_t offset;
+      size_t size;
+      bool swap;
+    };
+
+    constexpr FieldInfo fields[] = {
+        {offsetof(section_64, sectname), 16, false},
+        {offsetof(section_64, segname), 16, false},
+        {offsetof(section_64, addr), 8, true},
+        {offsetof(section_64, size), 8, true},
+        {offsetof(section_64, offset), 4, true},
+        {offsetof(section_64, align), 4, true},
+        {offsetof(section_64, reloff), 4, true},
+        {offsetof(section_64, nreloc), 4, true},
+        {offsetof(section_64, flags), 4, true},
+        {offsetof(section_64, reserved1), 4, true},
+        {offsetof(section_64, reserved2), 4, true},
+        {offsetof(section_64, reserved3), 4, true}
+    };
+
+    for (const auto& f : fields) {
+      if (f.swap) {
+        if (f.size == 4) {
+          uint32_t* ptr = reinterpret_cast<uint32_t*>(base + f.offset);
+          *ptr = __builtin_bswap32(*ptr);
+        } else if (f.size == 8) {
+          uint64_t* ptr = reinterpret_cast<uint64_t*>(base + f.offset);
+          *ptr = __builtin_bswap64(*ptr);
+        }
+      }
+    }
+  }
+};
+
 #endif
