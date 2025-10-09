@@ -1,47 +1,64 @@
 #ifndef STMNT_HPP
 #define STMNT_HPP
 
+#include <memory>
+
 #include "expr.hpp"
 #include "object.hpp"
-#include <memory>
+#include "token.hpp"
 
 class ExprStmnt;
 class PrintStmnt;
+class VarStmnt;
 
 class IStmntVisitor {
-public:
+ public:
   virtual ~IStmntVisitor() = default;
 
-  virtual Object visitExprStmnt(const ExprStmnt &stmnt) = 0;
-  virtual Object visitPrintStmnt(const PrintStmnt &stmnt) = 0;
+  virtual Object visitExprStmnt(const ExprStmnt& stmnt) = 0;
+  virtual Object visitPrintStmnt(const PrintStmnt& stmnt) = 0;
+  virtual Object visitVarStmnt(const VarStmnt& stmnt) = 0;
 };
 
 class Stmnt {
-public:
+ public:
   virtual ~Stmnt() = default;
-  virtual Object accept(IStmntVisitor *visitor) = 0;
+  virtual Object accept(IStmntVisitor* visitor) = 0;
 };
 
 class ExprStmnt final : public Stmnt {
-public:
+ public:
   std::unique_ptr<Expr> m_expr;
 
   ExprStmnt(std::unique_ptr<Expr> expr) : m_expr(std::move(expr)) {}
 
-  Object accept(IStmntVisitor *visitor) override {
+  Object accept(IStmntVisitor* visitor) override {
     return visitor->visitExprStmnt(*this);
   }
 };
 
 class PrintStmnt final : public Stmnt {
-public:
+ public:
   std::unique_ptr<Expr> m_expr;
 
   PrintStmnt(std::unique_ptr<Expr> expr) : m_expr(std::move(expr)) {}
 
-  Object accept(IStmntVisitor *visitor) override {
+  Object accept(IStmntVisitor* visitor) override {
     return visitor->visitPrintStmnt(*this);
   }
 };
 
-#endif // !STMNT_HPP
+class VarStmnt final : public Stmnt {
+ public:
+  std::unique_ptr<Expr> m_initialiser;
+  Token m_name;
+
+  VarStmnt(Token name, std::unique_ptr<Expr> expr)
+      : m_initialiser(std::move(expr)), m_name(name) {}
+
+  Object accept(IStmntVisitor* visitor) override {
+    return visitor->visitVarStmnt(*this);
+  }
+};
+
+#endif  // !STMNT_HPP

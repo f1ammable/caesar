@@ -5,13 +5,13 @@
 #include <string>
 
 class RuntimeError : public std::exception {
-private:
+ private:
   std::string message;
 
-public:
+ public:
   inline RuntimeError() : message("Runtime error occured.") {}
-  inline RuntimeError(const std::string &msg) : message(msg) {}
-  inline const char *what() { return message.c_str(); }
+  inline RuntimeError(const std::string& msg) : message(msg) {}
+  inline const char* what() { return message.c_str(); }
 };
 
-#endif // !RUNTIME_ERROR_HPP
+#endif  // !RUNTIME_ERROR_HPP

@@ -8,8 +8,8 @@
 #include "token.hpp"
 
 class Scanner {
-private:
-  Err &e = Err::getInstance();
+ private:
+  Err& e = Err::getInstance();
   const std::string m_source;
   std::vector<Token> m_tokens;
   int m_start = 0;
@@ -32,7 +32,7 @@ private:
   void addToken(TokenType tokenType);
   template <typename T>
     requires std::constructible_from<Object, T>
-  void addToken(TokenType tokenType, const T &literal) {
+  void addToken(TokenType tokenType, const T& literal) {
     const std::string text = m_source.substr(m_start, m_current - m_start);
     m_tokens.emplace_back(tokenType, text, literal, m_line);
   }
@@ -43,7 +43,7 @@ private:
   [[nodiscard]] char peekNext() const;
   void identifier();
 
-public:
+ public:
   explicit Scanner(std::string source);
   std::vector<Token> scanTokens();
 };

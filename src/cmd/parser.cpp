@@ -1,14 +1,17 @@
 #include "parser.hpp"
-#include "error.hpp"
-#include "parse_error.hpp"
-#include "stmnt.hpp"
-#include "token.hpp"
+
 #include <memory>
 #include <variant>
 
+#include "error.hpp"
+#include "expr.hpp"
+#include "parse_error.hpp"
+#include "stmnt.hpp"
+#include "token.hpp"
+
 Parser::Parser(std::vector<Token> tokens) : m_tokens(std::move(tokens)) {}
 
-std::unique_ptr<Expr> Parser::expression() { return equality(); }
+std::unique_ptr<Expr> Parser::expression() { return assignment(); }
 
 std::unique_ptr<Expr> Parser::equality() {
   std::unique_ptr<Expr> expr = comparison();
@@ -23,14 +26,12 @@ std::unique_ptr<Expr> Parser::equality() {
 }
 
 bool Parser::check(TokenType type) {
-  if (isAtEnd())
-    return false;
+  if (isAtEnd()) return false;
   return peek().m_type == type;
 }
 
 Token Parser::advance() {
-  if (!isAtEnd())
-    m_current++;
+  if (!isAtEnd()) m_current++;
   return previous();
 }
 
@@ -74,15 +75,16 @@ std::unique_ptr<Expr> Parser::unary() {
 }
 
 std::unique_ptr<Expr> Parser::primary() {
-  if (match(TokenType::FALSE))
-    return std::make_unique<Literal>(false);
-  if (match(TokenType::TRUE))
-    return std::make_unique<Literal>(true);
-  if (match(TokenType::NIL))
-    return std::make_unique<Literal>(std::monostate{});
+  if (match(TokenType::FALSE)) return std::make_unique<Literal>(false);
+  if (match(TokenType::TRUE)) return std::make_unique<Literal>(true);
+  if (match(TokenType::NIL)) return std::make_unique<Literal>(std::monostate{});
 
   if (match(TokenType::NUMBER, TokenType::STRING)) {
     return std::make_unique<Literal>(previous().m_literal);
+  }
+
+  if (match(TokenType::IDENTIFIER)) {
+    return std::make_unique<Variable>(previous());
   }
 
   if (match(TokenType::LEFT_PAREN)) {
@@ -107,15 +109,14 @@ std::unique_ptr<Expr> Parser::comparison() {
   return expr;
 }
 
-Token Parser::consume(TokenType type, const std::string &msg) {
-  if (check(type))
-    return advance();
+Token Parser::consume(TokenType type, const std::string& msg) {
+  if (check(type)) return advance();
 
   throw error(peek(), msg);
 }
 
-ParseError Parser::error(Token token, const std::string &msg) {
-  Err &err = Err::getInstance();
+ParseError Parser::error(Token token, const std::string& msg) {
+  Err& err = Err::getInstance();
   err.error(token, msg);
   return ParseError();
 }
@@ -124,28 +125,29 @@ void Parser::synchronise() {
   advance();
 
   while (!isAtEnd()) {
-    if (previous().m_type == TokenType::SEMICOLON)
-      return;
+    if (previous().m_type == TokenType::SEMICOLON) return;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wswitch"
     switch (peek().m_type) {
-    case TokenType::CLASS:
-    case TokenType::FUN:
-    case TokenType::VAR:
-    case TokenType::FOR:
-    case TokenType::IF:
-    case TokenType::WHILE:
-    case TokenType::PRINT:
-    case TokenType::RETURN:
-      return;
+      case TokenType::CLASS:
+      case TokenType::FUN:
+      case TokenType::VAR:
+      case TokenType::FOR:
+      case TokenType::IF:
+      case TokenType::WHILE:
+      case TokenType::PRINT:
+      case TokenType::RETURN:
+        return;
     }
+#pragma clang diagnostic pop
 
     advance();
   }
 }
 
 std::unique_ptr<Stmnt> Parser::statement() {
-  if (match(TokenType::PRINT))
-    return printStmnt();
+  if (match(TokenType::PRINT)) return printStmnt();
 
   return exprStmnt();
 }
@@ -166,8 +168,46 @@ std::vector<std::unique_ptr<Stmnt>> Parser::parse() {
   std::vector<std::unique_ptr<Stmnt>> statements;
 
   while (!isAtEnd()) {
-    statements.emplace_back(statement());
+    statements.emplace_back(declaration());
   }
 
   return statements;
+}
+
+std::unique_ptr<Stmnt> Parser::declaration() {
+  try {
+    if (match(TokenType::VAR)) return varDeclaration();
+
+    return statement();
+  } catch (ParseError& err) {
+    synchronise();
+    // TODO: Maybe this isn't the _best_ idea
+    return nullptr;
+  }
+}
+
+std::unique_ptr<Stmnt> Parser::varDeclaration() {
+  Token name = consume(TokenType::IDENTIFIER, "Expect variable name");
+  std::unique_ptr<Expr> initialiser = {};
+  if (match(TokenType::EQUAL)) initialiser = expression();
+  consume(TokenType::SEMICOLON, "Expect ';' after variable declaration");
+  return std::make_unique<VarStmnt>(name, std::move(initialiser));
+}
+
+std::unique_ptr<Expr> Parser::assignment() {
+  std::unique_ptr<Expr> expr = equality();
+
+  if (match(TokenType::EQUAL)) {
+    Token equals = previous();
+    std::unique_ptr<Expr> value = assignment();
+
+    if (auto* ptr = dynamic_cast<Variable*>(value.get())) {
+      Token name = ptr->m_name;
+      return std::make_unique<Assign>(name, std::move(value));
+    }
+
+    error(equals, "Invalid assignment target.");
+  }
+
+  return expr;
 }

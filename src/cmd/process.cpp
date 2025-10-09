@@ -1,10 +1,12 @@
 #include "process.h"
-#include <cstdlib>
-#include <cstring>
+
 #include <fmt/format.h>
-#include <iostream>
 #include <sys/ptrace.h>
 #include <sys/wait.h>
+
+#include <cstdlib>
+#include <cstring>
+#include <iostream>
 
 Process::Process(pid_t pid) : _pid(pid) {}
 Process::~Process() {
@@ -19,12 +21,11 @@ void Process::wait_status() const {
     std::cout << fmt::format("Child exited {}\n", WEXITSTATUS(this->status));
   if (WIFSIGNALED(this->status))
     std::cout << fmt::format("Child signaled {}\n", WTERMSIG(this->status));
-  if (WCOREDUMP(this->status))
-    std::cout << fmt::format("Child core dumped\n");
+  if (WCOREDUMP(this->status)) std::cout << fmt::format("Child core dumped\n");
 }
 
-[[nodiscard]] const pid_t &Process::pid() { return this->_pid; }
-[[nodiscard]] const user_regs_struct &Process::regs() {
+[[nodiscard]] const pid_t& Process::pid() { return this->_pid; }
+[[nodiscard]] const user_regs_struct& Process::regs() {
   if (ptrace(PTRACE_GETREGS, this->_pid, NULL, &this->_regs)) {
     std::cerr << fmt::format("Error fetching registers from child {}\n",
                              strerror(errno));
@@ -35,8 +36,7 @@ void Process::wait_status() const {
 
 [[nodiscard]] int Process::sstep() {
   int retval = ptrace(PTRACE_SINGLESTEP, this->_pid, 0, 0);
-  if (retval)
-    return retval;
+  if (retval) return retval;
   waitpid(this->_pid, &this->status, 0);
   return this->status;
 }

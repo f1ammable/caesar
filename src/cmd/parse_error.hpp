@@ -5,13 +5,13 @@
 #include <string>
 
 class ParseError : public std::exception {
-private:
+ private:
   std::string message;
 
-public:
+ public:
   inline ParseError() : message("Parsing error occured.") {}
-  inline ParseError(char *msg) : message(msg) {}
-  inline const char *what() { return message.c_str(); }
+  inline ParseError(char* msg) : message(msg) {}
+  inline const char* what() { return message.c_str(); }
 };
 
-#endif // !PARSE_ERR_HPP
+#endif  // !PARSE_ERR_HPP

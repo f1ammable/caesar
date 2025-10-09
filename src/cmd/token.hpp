@@ -1,9 +1,10 @@
 #ifndef TOKEN_H
 #define TOKEN_H
-#include "object.hpp"
 #include <format>
 #include <map>
 #include <string>
+
+#include "object.hpp"
 
 enum class TokenType {
   LEFT_PAREN,
@@ -47,8 +48,9 @@ enum class TokenType {
   END
 };
 
-template <> struct std::formatter<TokenType> : std::formatter<string_view> {
-  auto format(const TokenType &t, auto &ctx) const {
+template <>
+struct std::formatter<TokenType> : std::formatter<string_view> {
+  auto format(const TokenType& t, auto& ctx) const {
     const auto strings = [] {
       std::map<TokenType, std::string> res;
 #define INSERT_ELEM(p) res.emplace(p, #p);
@@ -100,7 +102,7 @@ template <> struct std::formatter<TokenType> : std::formatter<string_view> {
 };
 
 class Token {
-public:
+ public:
   const TokenType m_type;
   const std::string m_lexeme;
   const Object m_literal;
@@ -108,18 +110,21 @@ public:
 
   template <typename T>
     requires std::constructible_from<Object, T>
-  Token(TokenType type, std::string lexeme, T &&literal, int line)
-      : m_type(type), m_lexeme(std::move(lexeme)),
-        m_literal(std::forward<T>(literal)), m_line(line){};
+  Token(TokenType type, std::string lexeme, T&& literal, int line)
+      : m_type(type),
+        m_lexeme(std::move(lexeme)),
+        m_literal(std::forward<T>(literal)),
+        m_line(line){};
   [[nodiscard]] constexpr std::string toString() const {
     return std::format("{} {} {}", m_type, m_lexeme, m_literal);
   }
 };
 
-template <> struct std::formatter<Token> {
-  constexpr auto parse(std::format_parse_context &ctx) { return ctx.begin(); }
+template <>
+struct std::formatter<Token> {
+  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
-  auto format(const Token &t, std::format_context &ctx) const {
+  auto format(const Token& t, std::format_context& ctx) const {
     return std::format_to(ctx.out(), "{}", t.toString());
   }
 };

@@ -1,13 +1,15 @@
 #ifndef PARSER_HPP
 #define PARSER_HPP
 
+#include <memory>
+#include <vector>
+
 #include "expr.hpp"
 #include "parse_error.hpp"
 #include "stmnt.hpp"
 #include "token.hpp"
-#include <vector>
 class Parser {
-private:
+ private:
   std::vector<Token> m_tokens;
   int m_current = 0;
 
@@ -28,16 +30,19 @@ private:
   std::unique_ptr<Expr> unary();
   std::unique_ptr<Expr> primary();
   std::unique_ptr<Expr> comparison();
-  Token consume(TokenType type, const std::string &msg);
-  ParseError error(Token token, const std::string &msg);
+  Token consume(TokenType type, const std::string& msg);
+  ParseError error(Token token, const std::string& msg);
   void synchronise();
   std::unique_ptr<Stmnt> statement();
   std::unique_ptr<Stmnt> printStmnt();
   std::unique_ptr<Stmnt> exprStmnt();
+  std::unique_ptr<Stmnt> declaration();
+  std::unique_ptr<Stmnt> varDeclaration();
+  std::unique_ptr<Expr> assignment();
 
-public:
+ public:
   explicit Parser(std::vector<Token> tokens);
   std::vector<std::unique_ptr<Stmnt>> parse();
 };
 
-#endif // !PARSER_HPP
+#endif  // !PARSER_HPP

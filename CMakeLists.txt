@@ -22,9 +22,14 @@ set(CMD_SOURCES
     src/cmd/parse_error.hpp
     src/cmd/interpreter.cpp
     src/cmd/interpreter.hpp
-    src/core/macho.hpp
-    src/core/macho.cpp)
+    src/cmd/stmnt.hpp
+    src/cmd/environment.hpp
+    src/cmd/environment.cpp)
 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -fno-omit-frame-pointer -frtti")
+set(CORE_SOURCES src/core/macho.cpp src/core/macho.hpp src/core/util.hpp)
+set(DWARF_SOURCES src/core/dwarf/reader.cpp src/core/dwarf/reader.hpp)
+add_executable(caesar src/main.cpp ${CMD_SOURCES} ${CORE_SOURCES}
+                      ${DWARF_SOURCES})
 
-add_executable(caesar src/main.cpp ${CMD_SOURCES})
+find_package(libdwarf CONFIG REQUIRED)
+target_link_libraries(caesar PUBLIC libdwarf::dwarf)

@@ -15,22 +15,23 @@ struct SwapDescriptor {
     uint32_t* fields = reinterpret_cast<uint32_t*>(ptr);
     constexpr size_t num_fields = sizeof(T) / sizeof(uint32_t);
 
+    // TODO: Compiler builtin, make this more platform agnostic
     for (size_t i = 0; i < num_fields; i++) {
       fields[i] = __builtin_bswap32(fields[i]);
     }
   }
 };
 
+struct FieldInfo {
+  size_t offset;
+  size_t size;
+  bool swap;
+};
+
 template <>
 struct SwapDescriptor<segment_command_64> {
   static void swap(segment_command_64* segment) {
     char* base = reinterpret_cast<char*>(segment);
-
-    struct FieldInfo {
-      size_t offset;
-      size_t size;
-      bool swap;
-    };
 
     constexpr FieldInfo fields[] = {
         {offsetof(segment_command_64, cmd), 4, true},
@@ -61,29 +62,21 @@ struct SwapDescriptor<segment_command_64> {
 
 template <>
 struct SwapDescriptor<section_64> {
-static void swap(section_64* section) {
+  static void swap(section_64* section) {
     char* base = reinterpret_cast<char*>(section);
 
-    struct FieldInfo {
-      size_t offset;
-      size_t size;
-      bool swap;
-    };
-
-    constexpr FieldInfo fields[] = {
-        {offsetof(section_64, sectname), 16, false},
-        {offsetof(section_64, segname), 16, false},
-        {offsetof(section_64, addr), 8, true},
-        {offsetof(section_64, size), 8, true},
-        {offsetof(section_64, offset), 4, true},
-        {offsetof(section_64, align), 4, true},
-        {offsetof(section_64, reloff), 4, true},
-        {offsetof(section_64, nreloc), 4, true},
-        {offsetof(section_64, flags), 4, true},
-        {offsetof(section_64, reserved1), 4, true},
-        {offsetof(section_64, reserved2), 4, true},
-        {offsetof(section_64, reserved3), 4, true}
-    };
+    constexpr FieldInfo fields[] = {{offsetof(section_64, sectname), 16, false},
+                                    {offsetof(section_64, segname), 16, false},
+                                    {offsetof(section_64, addr), 8, true},
+                                    {offsetof(section_64, size), 8, true},
+                                    {offsetof(section_64, offset), 4, true},
+                                    {offsetof(section_64, align), 4, true},
+                                    {offsetof(section_64, reloff), 4, true},
+                                    {offsetof(section_64, nreloc), 4, true},
+                                    {offsetof(section_64, flags), 4, true},
+                                    {offsetof(section_64, reserved1), 4, true},
+                                    {offsetof(section_64, reserved2), 4, true},
+                                    {offsetof(section_64, reserved3), 4, true}};
 
     for (const auto& f : fields) {
       if (f.swap) {

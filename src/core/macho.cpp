@@ -58,9 +58,8 @@ void Macho::dump_segment_commands(int offset, uint32_t ncmds) {
                        segment->segname, segment->fileoff, segment->vmaddr,
                        segment->vmsize)
                 << std::endl;
-      if (std::string(segment->segname) == "__TEXT") {
-        dump_sections(actual_offset + sizeof(segment_command_64), actual_offset + cmd->cmdsize);
-      }
+      dump_sections(actual_offset + sizeof(segment_command_64),
+                    actual_offset + cmd->cmdsize);
     }
     actual_offset += cmd->cmdsize;
   }
@@ -77,7 +76,9 @@ void Macho::dump_sections(int offset, int end) {
   int actual_offset = offset;
   while (actual_offset != end) {
     auto section = this->load_bytes_and_maybe_swap<section_64>(actual_offset);
-    std::cout << std::format("Section: {}; Address: 0x{:x}", section->sectname, section->addr) << std::endl;
+    std::cout << std::format("Section: {}; Address: 0x{:x}", section->sectname,
+                             section->addr)
+              << std::endl;
     actual_offset += sizeof(section_64);
   }
 }
