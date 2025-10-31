@@ -1,2 +1,4 @@
 .cache
 build/
+vcpkg-manifest-install.log
+vcpkg_installed
