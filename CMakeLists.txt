@@ -27,7 +27,7 @@ set(CMD_SOURCES
     src/cmd/environment.cpp)
 
 set(CORE_SOURCES src/core/macho.cpp src/core/macho.hpp src/core/util.hpp)
-set(DWARF_SOURCES src/core/dwarf/reader.cpp src/core/dwarf/reader.hpp)
+set(DWARF_SOURCES src/core/dwarf/context.cpp src/core/dwarf/context.hpp src/core/dwarf/alloc.hpp)
 add_executable(caesar src/main.cpp ${CMD_SOURCES} ${CORE_SOURCES}
                       ${DWARF_SOURCES})
 
