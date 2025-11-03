@@ -1,8 +1,10 @@
 #include "interpreter.hpp"
 
+#include <format>
 #include <iostream>
 #include <variant>
 
+#include "callable.hpp"
 #include "error.hpp"
 #include "expr.hpp"
 #include "object.hpp"
@@ -151,4 +153,26 @@ Object Interpreter::visitAssignExpr(const Assign& expr) {
   Object value = evaluate(expr.m_value);
   m_env.assign(expr.m_name, value);
   return value;
+}
+
+Object Interpreter::visitCallExpr(const Call& expr) {
+  Object callee = evaluate(expr.m_callee);
+  std::vector<Object> args;
+
+  for (auto& x : expr.m_args) {
+    args.push_back(evaluate(x));
+  }
+
+  auto* callable = std::get_if<std::shared_ptr<Callable>>(&callee);
+
+  if (!callable)
+    throw RuntimeError(
+        std::format("{}: Can only call functions", expr.m_paren));
+
+  // TODO: Say how many args were given and how many were expected
+  if (args.size() != (*callable)->arity())
+    throw RuntimeError(
+        std::format("{}: Wrong number of arguments", expr.m_paren));
+
+  return (*callable)->call(*this, args);
 }

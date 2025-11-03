@@ -28,6 +28,7 @@ class Interpreter : public IExprVisitor, IStmntVisitor {
   Object visitPrintStmnt(const PrintStmnt& stmnt) override;
   Object visitVarStmnt(const VarStmnt& stmnt) override;
   Object visitAssignExpr(const Assign& expr) override;
+  Object visitCallExpr(const Call& expr) override;
 };
 
 #endif  // !INTERPRETER_HPP

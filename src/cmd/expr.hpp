@@ -20,6 +20,8 @@ class Variable;
 
 class Assign;
 
+class Call;
+
 class IExprVisitor {
  public:
   virtual ~IExprVisitor() = default;
@@ -35,6 +37,8 @@ class IExprVisitor {
   virtual Object visitVariableExpr(const Variable& expr) = 0;
 
   virtual Object visitAssignExpr(const Assign& expr) = 0;
+
+  virtual Object visitCallExpr(const Call& expr) = 0;
 };
 
 class Expr {
@@ -177,6 +181,34 @@ class Assign final : public Expr {
 
   [[nodiscard]] std::string str() const override {
     return std::format("{} - {}", m_name, m_value);
+  }
+};
+
+class Call final : public Expr {
+ public:
+  std::unique_ptr<Expr> m_callee;
+  Token m_paren;
+  std::vector<std::unique_ptr<Expr>> m_args;
+
+  explicit Call(std::unique_ptr<Expr> callee, Token paren,
+                std::vector<std::unique_ptr<Expr>> args)
+      : m_callee(std::move(callee)), m_paren(paren), m_args(std::move(args)) {}
+
+  Object accept(IExprVisitor* visitor) const override {
+    return visitor->visitCallExpr(*this);
+  }
+
+  [[nodiscard]] std::string str() const override {
+    // Ugly ish but it works
+    std::string argList{};
+
+    for (auto& x : m_args) {
+      argList.append(std::format("{} ", x));
+    }
+
+    argList.pop_back();
+
+    return std::format("Call: {} ({})", m_callee, argList);
   }
 };
 

@@ -1,7 +1,9 @@
 #ifndef OBJECT_H
 #define OBJECT_H
+
 #include <format>
 #include <functional>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -9,8 +11,10 @@
 
 #include "runtime_error.hpp"
 
-using Object =
-    std::variant<std::monostate, std::string, float, int, double, bool>;
+class Callable;
+
+using Object = std::variant<std::monostate, std::string, float, int, double,
+                            bool, std::shared_ptr<Callable>>;
 
 template <typename Op>
 inline Object binary_operation(const Object& lhs, const Object& rhs, Op op,

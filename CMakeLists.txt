@@ -24,7 +24,9 @@ set(CMD_SOURCES
     src/cmd/interpreter.hpp
     src/cmd/stmnt.hpp
     src/cmd/environment.hpp
-    src/cmd/environment.cpp)
+    src/cmd/environment.cpp
+    src/cmd/callable.hpp
+    src/cmd/stdlib.hpp)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   list(APPEND CORE_SOURCES src/core/macho.hpp src/core/macho.cpp)
