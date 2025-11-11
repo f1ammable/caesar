@@ -1,9 +1,12 @@
 #include "scanner.hpp"
 
+#include <string>
 #include <utility>
 #include <variant>
 
 #include "error.hpp"
+#include "stdlib.hpp"
+#include "token.hpp"
 #include "util.hpp"
 
 Scanner::Scanner(std::string source) : m_source(std::move(source)) {}
@@ -175,5 +178,17 @@ void Scanner::identifier() {
     type = TokenType::IDENTIFIER;
   }
 
+  if (type == TokenType::FUN) {
+    function(text);
+    return;
+  }
+
   addToken(type);
+}
+
+void Scanner::function(const std::string& name) {
+  // TODO: dynamically find class based on function name
+  // maybe look in environment.hpp
+  if (m_keywords.contains(name))
+    addToken(TokenType::FUN, std::make_shared<LenFn>(LenFn()));
 }

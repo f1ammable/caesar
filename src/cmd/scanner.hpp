@@ -24,7 +24,7 @@ class Scanner {
       {"return", TokenType::RETURN}, {"super", TokenType::SUPER},
       {"this", TokenType::THIS},     {"true", TokenType::TRUE},
       {"var", TokenType::VAR},       {"while", TokenType::WHILE},
-  };
+      {"len", TokenType::FUN}};
 
   [[nodiscard]] bool isAtEnd() const;
   void scanToken();
@@ -42,6 +42,7 @@ class Scanner {
   void number();
   [[nodiscard]] char peekNext() const;
   void identifier();
+  void function(const std::string& name);
 
  public:
   explicit Scanner(std::string source);

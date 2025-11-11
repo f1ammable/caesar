@@ -3,7 +3,6 @@
 
 #include <format>
 #include <functional>
-#include <memory>
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -148,7 +147,12 @@ struct std::formatter<Object> {
         }
 
         return std::format_to(ctx.out(), "{}", text);
-      } else {
+
+      } else if constexpr (std::is_same_v<T, std::shared_ptr<Callable>>) {
+        return std::format_to(ctx.out(), "<function>");
+      }
+
+      else {
         return std::format_to(ctx.out(), "{}", value);
       }
     };
