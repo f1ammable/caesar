@@ -39,6 +39,7 @@ class Parser {
   std::unique_ptr<Stmnt> declaration();
   std::unique_ptr<Stmnt> varDeclaration();
   std::unique_ptr<Expr> assignment();
+  std::unique_ptr<Stmnt> funStmnt();
 
  public:
   explicit Parser(std::vector<Token> tokens);

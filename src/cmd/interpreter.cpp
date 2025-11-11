@@ -130,6 +130,16 @@ Object Interpreter::visitPrintStmnt(const PrintStmnt& stmnt) {
   return std::monostate{};
 }
 
+Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
+  Object arg = evaluate(stmnt.m_args);
+  auto fn = std::get_if<std::shared_ptr<Callable>>(&stmnt.m_fn.m_literal);
+  // TODO: Check arity against vector size
+  std::vector<Object> argList = {};
+  argList.emplace_back(std::move(arg));
+  if (fn) std::cout << stringify(fn->get()->call(*this, argList)) << std::endl;
+  return std::monostate{};
+}
+
 Object Interpreter::execute(const std::unique_ptr<Stmnt>& stmnt) {
   return stmnt->accept(this);
 }
@@ -155,24 +165,6 @@ Object Interpreter::visitAssignExpr(const Assign& expr) {
   return value;
 }
 
-Object Interpreter::visitCallExpr(const Call& expr) {
-  Object callee = evaluate(expr.m_callee);
-  std::vector<Object> args;
-
-  for (auto& x : expr.m_args) {
-    args.push_back(evaluate(x));
-  }
-
-  auto* callable = std::get_if<std::shared_ptr<Callable>>(&callee);
-
-  if (!callable)
-    throw RuntimeError(
-        std::format("{}: Can only call functions", expr.m_paren));
-
-  // TODO: Say how many args were given and how many were expected
-  if (args.size() != (*callable)->arity())
-    throw RuntimeError(
-        std::format("{}: Wrong number of arguments", expr.m_paren));
-
-  return (*callable)->call(*this, args);
-}
+Interpreter::Interpreter() {
+  // m_env.define("len", std::make_shared<Callable>(LenFn()));
+};

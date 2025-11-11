@@ -45,7 +45,7 @@ enum class TokenType {
   TRUE,
   VAR,
   WHILE,
-  END
+  END,
 };
 
 template <>

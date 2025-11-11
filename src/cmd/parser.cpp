@@ -147,8 +147,7 @@ void Parser::synchronise() {
 }
 
 std::unique_ptr<Stmnt> Parser::statement() {
-  if (match(TokenType::PRINT)) return printStmnt();
-
+  if (match(TokenType::FUN)) return funStmnt();
   return exprStmnt();
 }
 
@@ -210,4 +209,11 @@ std::unique_ptr<Expr> Parser::assignment() {
   }
 
   return expr;
+}
+
+std::unique_ptr<Stmnt> Parser::funStmnt() {
+  std::unique_ptr<Expr> args = expression();
+  consume(TokenType::SEMICOLON, "Expect ';' after function call.");
+  return std::make_unique<CallStmnt>(std::move(this->m_tokens[0]),
+                                     std::move(args));
 }

@@ -10,6 +10,7 @@
 class ExprStmnt;
 class PrintStmnt;
 class VarStmnt;
+class CallStmnt;
 
 class IStmntVisitor {
  public:
@@ -18,6 +19,7 @@ class IStmntVisitor {
   virtual Object visitExprStmnt(const ExprStmnt& stmnt) = 0;
   virtual Object visitPrintStmnt(const PrintStmnt& stmnt) = 0;
   virtual Object visitVarStmnt(const VarStmnt& stmnt) = 0;
+  virtual Object visitCallStmnt(const CallStmnt& stmnt) = 0;
 };
 
 class Stmnt {
@@ -45,6 +47,21 @@ class PrintStmnt final : public Stmnt {
 
   Object accept(IStmntVisitor* visitor) override {
     return visitor->visitPrintStmnt(*this);
+  }
+};
+
+class CallStmnt final : public Stmnt {
+ public:
+  Token m_fn;
+  // TODO: Use std::vector to support multiple arguments
+  // See interpreter.cpp:135
+  std::unique_ptr<Expr> m_args;
+
+  CallStmnt(Token fn, std::unique_ptr<Expr> expr)
+      : m_fn(std::move(fn)), m_args(std::move(expr)) {}
+
+  Object accept(IStmntVisitor* visitor) override {
+    return visitor->visitCallStmnt(*this);
   }
 };
 
