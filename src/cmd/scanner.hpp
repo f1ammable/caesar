@@ -16,15 +16,14 @@ class Scanner {
   int m_current = 0;
   int m_line = 1;
   std::map<std::string, TokenType> m_keywords = {
-      {"and", TokenType::AND},       {"class", TokenType::CLASS},
-      {"else", TokenType::ELSE},     {"false", TokenType::FALSE},
-      {"for", TokenType::FOR},       {"fun", TokenType::FUN},
-      {"if", TokenType::IF},         {"nil", TokenType::NIL},
-      {"or", TokenType::OR},         {"print", TokenType::PRINT},
-      {"return", TokenType::RETURN}, {"super", TokenType::SUPER},
-      {"this", TokenType::THIS},     {"true", TokenType::TRUE},
-      {"var", TokenType::VAR},       {"while", TokenType::WHILE},
-      {"len", TokenType::FUN}};
+      {"and", TokenType::AND},     {"class", TokenType::CLASS},
+      {"else", TokenType::ELSE},   {"false", TokenType::FALSE},
+      {"for", TokenType::FOR},     {"fun", TokenType::FUN},
+      {"if", TokenType::IF},       {"nil", TokenType::NIL},
+      {"or", TokenType::OR},       {"return", TokenType::RETURN},
+      {"super", TokenType::SUPER}, {"this", TokenType::THIS},
+      {"true", TokenType::TRUE},   {"var", TokenType::VAR},
+      {"while", TokenType::WHILE}};
 
   [[nodiscard]] bool isAtEnd() const;
   void scanToken();
@@ -42,7 +41,6 @@ class Scanner {
   void number();
   [[nodiscard]] char peekNext() const;
   void identifier();
-  void function(const std::string& name);
 
  public:
   explicit Scanner(std::string source);
