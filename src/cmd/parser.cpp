@@ -147,7 +147,16 @@ void Parser::synchronise() {
 }
 
 std::unique_ptr<Stmnt> Parser::statement() {
-  if (match(TokenType::FUN)) return funStmnt();
+  if (check(TokenType::IDENTIFIER)) {
+    int saved = m_current;
+    advance(); 
+    if (!check(TokenType::SEMICOLON) && !check(TokenType::EQUAL)) {
+      m_current = saved;
+      return funStmnt();
+    }
+    m_current = saved;
+  }
+
   return exprStmnt();
 }
 
@@ -212,8 +221,8 @@ std::unique_ptr<Expr> Parser::assignment() {
 }
 
 std::unique_ptr<Stmnt> Parser::funStmnt() {
+  Token fnName = consume(TokenType::IDENTIFIER, "Expect function name");
   std::unique_ptr<Expr> args = expression();
   consume(TokenType::SEMICOLON, "Expect ';' after function call.");
-  return std::make_unique<CallStmnt>(std::move(this->m_tokens[0]),
-                                     std::move(args));
+  return std::make_unique<CallStmnt>(fnName, std::move(args));
 }

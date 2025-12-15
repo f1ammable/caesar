@@ -9,6 +9,7 @@
 #include "expr.hpp"
 #include "object.hpp"
 #include "runtime_error.hpp"
+#include "stdlib.hpp"
 #include "stmnt.hpp"
 #include "token.hpp"
 
@@ -132,7 +133,8 @@ Object Interpreter::visitPrintStmnt(const PrintStmnt& stmnt) {
 
 Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
   Object arg = evaluate(stmnt.m_args);
-  auto fn = std::get_if<std::shared_ptr<Callable>>(&stmnt.m_fn.m_literal);
+  Object fnObj = m_env.get(stmnt.m_fn);  // Look up function in environment
+  auto fn = std::get_if<std::shared_ptr<Callable>>(&fnObj);
   // TODO: Check arity against vector size
   std::vector<Object> argList = {};
   argList.emplace_back(std::move(arg));
@@ -166,5 +168,6 @@ Object Interpreter::visitAssignExpr(const Assign& expr) {
 }
 
 Interpreter::Interpreter() {
-  // m_env.define("len", std::make_shared<Callable>(LenFn()));
+  m_env.define("len", std::make_shared<LenFn>(LenFn()));
+  m_env.define("print", std::make_shared<PrintFn>(PrintFn()));
 };

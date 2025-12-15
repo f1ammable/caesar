@@ -178,17 +178,6 @@ void Scanner::identifier() {
     type = TokenType::IDENTIFIER;
   }
 
-  if (type == TokenType::FUN) {
-    function(text);
-    return;
-  }
-
   addToken(type);
 }
 
-void Scanner::function(const std::string& name) {
-  // TODO: dynamically find class based on function name
-  // maybe look in environment.hpp
-  if (m_keywords.contains(name))
-    addToken(TokenType::FUN, std::make_shared<LenFn>(LenFn()));
-}
