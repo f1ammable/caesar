@@ -4,25 +4,25 @@
 
 #include "runtime_error.hpp"
 
-void Err::report(int line, const std::string& where, const std::string& msg) {
-  std::cout << std::format("[line {}] Error {}: {}\n", line, where, msg);
+void Err::report(const std::string& where, const std::string& msg) {
+  std::cout << std::format("Error {}: {}\n", where, msg);
   hadError = true;
 }
 
-void Err::error(const int line, const std::string& msg) {
-  report(line, "", msg);
+void Err::error(const std::string& msg) {
+  report("", msg);
 }
 
 void Err::error(Token token, const std::string& msg) {
   if (token.m_type == TokenType::END) {
-    report(token.m_line, " at end", msg);
+    report(" at end", msg);
   } else {
-    report(token.m_line, std::format("at '{}'", token.m_lexeme), msg);
+    report(std::format("at '{}'", token.m_lexeme), msg);
   }
 }
 
 void Err::runtimeError(RuntimeError& err) {
-  std::cerr << std::format("{}\n[line ????]", err.what()) << std::endl;
+  std::cerr << err.what() << std::endl;
   hadRuntimeError = true;
 }
 

@@ -15,15 +15,10 @@ class Scanner {
   int m_start = 0;
   int m_current = 0;
   int m_line = 1;
-  std::map<std::string, TokenType> m_keywords = {
-      {"and", TokenType::AND},     {"class", TokenType::CLASS},
-      {"else", TokenType::ELSE},   {"false", TokenType::FALSE},
-      {"for", TokenType::FOR},     {"fun", TokenType::FUN},
-      {"if", TokenType::IF},       {"nil", TokenType::NIL},
-      {"or", TokenType::OR},       {"return", TokenType::RETURN},
-      {"super", TokenType::SUPER}, {"this", TokenType::THIS},
-      {"true", TokenType::TRUE},   {"var", TokenType::VAR},
-      {"while", TokenType::WHILE}};
+  std::map<std::string, TokenType> m_keywords = {{"false", TokenType::FALSE},
+                                                 {"nil", TokenType::NIL},
+                                                 {"true", TokenType::TRUE},
+                                                 {"var", TokenType::VAR}};
 
   [[nodiscard]] bool isAtEnd() const;
   void scanToken();

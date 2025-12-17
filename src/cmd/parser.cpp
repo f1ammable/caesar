@@ -26,7 +26,6 @@ std::unique_ptr<Expr> Parser::equality() {
 }
 
 bool Parser::check(TokenType type) {
-  if (isAtEnd()) return false;
   return peek().m_type == type;
 }
 
@@ -125,19 +124,12 @@ void Parser::synchronise() {
   advance();
 
   while (!isAtEnd()) {
-    if (previous().m_type == TokenType::SEMICOLON) return;
+    if (check(TokenType::END)) return;
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wswitch"
     switch (peek().m_type) {
-      case TokenType::CLASS:
-      case TokenType::FUN:
       case TokenType::VAR:
-      case TokenType::FOR:
-      case TokenType::IF:
-      case TokenType::WHILE:
-      case TokenType::PRINT:
-      case TokenType::RETURN:
         return;
     }
 #pragma clang diagnostic pop
@@ -150,7 +142,7 @@ std::unique_ptr<Stmnt> Parser::statement() {
   if (check(TokenType::IDENTIFIER)) {
     int saved = m_current;
     advance(); 
-    if (!check(TokenType::SEMICOLON) && !check(TokenType::EQUAL)) {
+    if (!check(TokenType::EQUAL)) {
       m_current = saved;
       return funStmnt();
     }
@@ -162,13 +154,13 @@ std::unique_ptr<Stmnt> Parser::statement() {
 
 std::unique_ptr<Stmnt> Parser::printStmnt() {
   std::unique_ptr<Expr> value = expression();
-  consume(TokenType::SEMICOLON, "Expect ';' after value.");
+  consume(TokenType::END, "Expect EOF after value.");
   return std::make_unique<PrintStmnt>(std::move(value));
 }
 
 std::unique_ptr<Stmnt> Parser::exprStmnt() {
   std::unique_ptr<Expr> expr = expression();
-  consume(TokenType::SEMICOLON, "Expect ';' after expression.");
+  consume(TokenType::END, "Expect EOF after expression.");
   return std::make_unique<ExprStmnt>(std::move(expr));
 }
 
@@ -198,7 +190,7 @@ std::unique_ptr<Stmnt> Parser::varDeclaration() {
   Token name = consume(TokenType::IDENTIFIER, "Expect variable name");
   std::unique_ptr<Expr> initialiser = {};
   if (match(TokenType::EQUAL)) initialiser = expression();
-  consume(TokenType::SEMICOLON, "Expect ';' after variable declaration");
+  consume(TokenType::END, "Expect EOF after variable declaration");
   return std::make_unique<VarStmnt>(name, std::move(initialiser));
 }
 
@@ -225,10 +217,10 @@ std::unique_ptr<Stmnt> Parser::funStmnt() {
 
   std::vector<std::unique_ptr<Expr>> args = {};
 
-  while (!check(TokenType::SEMICOLON)) {
+  while (!check(TokenType::END)) {
     args.emplace_back(primary());
   }
 
-  consume(TokenType::SEMICOLON, "Expect ';' after function call.");
+  consume(TokenType::END, "Expect EOF after function call.");
   return std::make_unique<CallStmnt>(fnName, std::move(args));
 }
