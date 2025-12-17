@@ -17,8 +17,8 @@ class Err {
 
   bool hadError;
   bool hadRuntimeError;
-  void report(int line, const std::string& where, const std::string& msg);
-  void error(int line, const std::string& msg);
+  void report(const std::string& where, const std::string& msg);
+  void error(const std::string& msg);
   void error(Token token, const std::string& msg);
   void runtimeError(RuntimeError& err);
   static Err& getInstance();

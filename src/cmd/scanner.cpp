@@ -32,26 +32,11 @@ void Scanner::scanToken() {
     case ')':
       addToken(TokenType::RIGHT_PAREN);
       break;
-    case '{':
-      addToken(TokenType::LEFT_BRACE);
-      break;
-    case '}':
-      addToken(TokenType::RIGHT_BRACE);
-      break;
-    case ',':
-      addToken(TokenType::COMMA);
-      break;
-    case '.':
-      addToken(TokenType::DOT);
-      break;
     case '-':
       addToken(TokenType::MINUS);
       break;
     case '+':
       addToken(TokenType::PLUS);
-      break;
-    case ';':
-      addToken(TokenType::SEMICOLON);
       break;
     case '*':
       addToken(TokenType::STAR);
@@ -93,7 +78,7 @@ void Scanner::scanToken() {
       } else if (isalpha(c)) {
         identifier();
       } else {
-        e.error(m_line, "Unexpected character");
+        e.error("Unexpected character");
       }
       break;
   }
@@ -127,7 +112,7 @@ void Scanner::string() {
   }
 
   if (isAtEnd()) {
-    e.error(m_line, "Unterminated string");
+    e.error("Unterminated string");
     return;
   }
 
@@ -176,4 +161,3 @@ void Scanner::identifier() {
 
   addToken(type);
 }
-

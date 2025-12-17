@@ -179,5 +179,4 @@ Object Interpreter::visitAssignExpr(const Assign& expr) {
 Interpreter::Interpreter() {
   m_env.define("len", std::make_shared<LenFn>(LenFn()));
   m_env.define("print", std::make_shared<PrintFn>(PrintFn()));
-  m_env.define("add", std::make_shared<AddFn>(AddFn()));
 };

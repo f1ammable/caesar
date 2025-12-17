@@ -9,13 +9,8 @@
 enum class TokenType {
   LEFT_PAREN,
   RIGHT_PAREN,
-  LEFT_BRACE,
-  RIGHT_BRACE,
-  COMMA,
-  DOT,
   MINUS,
   PLUS,
-  SEMICOLON,
   SLASH,
   STAR,
   BANG,
@@ -29,22 +24,10 @@ enum class TokenType {
   IDENTIFIER,
   STRING,
   NUMBER,
-  AND,
-  CLASS,
-  ELSE,
-  FALSE,
-  FUN,
-  FOR,
-  IF,
   NIL,
-  OR,
-  PRINT,
-  RETURN,
-  SUPER,
-  THIS,
   TRUE,
+  FALSE,
   VAR,
-  WHILE,
   END,
 };
 
@@ -56,13 +39,8 @@ struct std::formatter<TokenType> : std::formatter<string_view> {
 #define INSERT_ELEM(p) res.emplace(p, #p);
       INSERT_ELEM(TokenType::LEFT_PAREN);
       INSERT_ELEM(TokenType::RIGHT_PAREN);
-      INSERT_ELEM(TokenType::LEFT_BRACE);
-      INSERT_ELEM(TokenType::RIGHT_BRACE);
-      INSERT_ELEM(TokenType::COMMA);
-      INSERT_ELEM(TokenType::DOT);
       INSERT_ELEM(TokenType::MINUS);
       INSERT_ELEM(TokenType::PLUS);
-      INSERT_ELEM(TokenType::SEMICOLON);
       INSERT_ELEM(TokenType::SLASH);
       INSERT_ELEM(TokenType::STAR);
       INSERT_ELEM(TokenType::BANG);
@@ -76,22 +54,10 @@ struct std::formatter<TokenType> : std::formatter<string_view> {
       INSERT_ELEM(TokenType::IDENTIFIER);
       INSERT_ELEM(TokenType::STRING);
       INSERT_ELEM(TokenType::NUMBER);
-      INSERT_ELEM(TokenType::AND);
-      INSERT_ELEM(TokenType::CLASS);
-      INSERT_ELEM(TokenType::ELSE);
-      INSERT_ELEM(TokenType::FALSE);
-      INSERT_ELEM(TokenType::FUN);
-      INSERT_ELEM(TokenType::FOR);
-      INSERT_ELEM(TokenType::IF);
       INSERT_ELEM(TokenType::NIL);
-      INSERT_ELEM(TokenType::OR);
-      INSERT_ELEM(TokenType::PRINT);
-      INSERT_ELEM(TokenType::RETURN);
-      INSERT_ELEM(TokenType::SUPER)
-      INSERT_ELEM(TokenType::THIS);
       INSERT_ELEM(TokenType::TRUE);
+      INSERT_ELEM(TokenType::FALSE);
       INSERT_ELEM(TokenType::VAR);
-      INSERT_ELEM(TokenType::WHILE);
       INSERT_ELEM(TokenType::END);
 #undef INSERT_ELEM
       return res;
