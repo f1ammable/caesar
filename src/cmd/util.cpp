@@ -22,7 +22,7 @@ TokenType detail::ctoop(const char c) {
   }
 }
 
-std::variant<int, float, double> detail::parseNumber(const std::string& str) {
+double detail::parseNumber(const std::string& str) {
   try {
     size_t pos = 0;
     int val = std::stoi(str, &pos);

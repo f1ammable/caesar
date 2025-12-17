@@ -222,7 +222,13 @@ std::unique_ptr<Expr> Parser::assignment() {
 
 std::unique_ptr<Stmnt> Parser::funStmnt() {
   Token fnName = consume(TokenType::IDENTIFIER, "Expect function name");
-  std::unique_ptr<Expr> args = expression();
+
+  std::vector<std::unique_ptr<Expr>> args = {};
+
+  while (!check(TokenType::SEMICOLON)) {
+    args.emplace_back(primary());
+  }
+
   consume(TokenType::SEMICOLON, "Expect ';' after function call.");
   return std::make_unique<CallStmnt>(fnName, std::move(args));
 }
