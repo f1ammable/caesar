@@ -53,11 +53,9 @@ class PrintStmnt final : public Stmnt {
 class CallStmnt final : public Stmnt {
  public:
   Token m_fn;
-  // TODO: Use std::vector to support multiple arguments
-  // See interpreter.cpp:135
-  std::unique_ptr<Expr> m_args;
+  std::vector<std::unique_ptr<Expr>> m_args;
 
-  CallStmnt(Token fn, std::unique_ptr<Expr> expr)
+  CallStmnt(Token fn, std::vector<std::unique_ptr<Expr>> expr)
       : m_fn(std::move(fn)), m_args(std::move(expr)) {}
 
   Object accept(IStmntVisitor* visitor) override {

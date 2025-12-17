@@ -132,13 +132,22 @@ Object Interpreter::visitPrintStmnt(const PrintStmnt& stmnt) {
 }
 
 Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
-  Object arg = evaluate(stmnt.m_args);
-  Object fnObj = m_env.get(stmnt.m_fn);  // Look up function in environment
-  auto fn = std::get_if<std::shared_ptr<Callable>>(&fnObj);
-  // TODO: Check arity against vector size
   std::vector<Object> argList = {};
-  argList.emplace_back(std::move(arg));
-  if (fn) std::cout << stringify(fn->get()->call(*this, argList)) << std::endl;
+
+  for (const auto& x : stmnt.m_args) {
+    argList.emplace_back(std::move(evaluate(x)));
+  }
+
+  Object fnObj = m_env.get(stmnt.m_fn);
+  auto fn = std::get_if<std::shared_ptr<Callable>>(&fnObj);
+
+  if (fn) {
+    if (argList.size() != fn->get()->arity())
+      throw RuntimeError(
+          std::format("Function requires {} arguments but {} were provided",
+                      fn->get()->arity(), argList.size()));
+  }
+  std::cout << stringify(fn->get()->call(*this, argList)) << std::endl;
   return std::monostate{};
 }
 
@@ -170,4 +179,5 @@ Object Interpreter::visitAssignExpr(const Assign& expr) {
 Interpreter::Interpreter() {
   m_env.define("len", std::make_shared<LenFn>(LenFn()));
   m_env.define("print", std::make_shared<PrintFn>(PrintFn()));
+  m_env.define("add", std::make_shared<AddFn>(AddFn()));
 };

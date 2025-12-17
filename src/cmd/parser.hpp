@@ -31,6 +31,11 @@ class Parser {
   std::unique_ptr<Expr> primary();
   std::unique_ptr<Expr> comparison();
   Token consume(TokenType type, const std::string& msg);
+  template <typename... Args>
+    requires(std::is_same_v<TokenType, Args> && ...)
+  Token consumeAnyOf(Args... tokens, const std::string& msg) {
+    return (... || consume(tokens, msg));
+  }
   ParseError error(Token token, const std::string& msg);
   void synchronise();
   std::unique_ptr<Stmnt> statement();

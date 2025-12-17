@@ -1,6 +1,7 @@
 #ifndef OBJECT_H
 #define OBJECT_H
 
+#include <cstring>
 #include <format>
 #include <functional>
 #include <sstream>
@@ -12,8 +13,8 @@
 
 class Callable;
 
-using Object = std::variant<std::monostate, std::string, float, int, double,
-                            bool, std::shared_ptr<Callable>>;
+using Object = std::variant<std::monostate, std::string, double, bool,
+                            std::shared_ptr<Callable>>;
 
 template <typename Op>
 inline Object binary_operation(const Object& lhs, const Object& rhs, Op op,

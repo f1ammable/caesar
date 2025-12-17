@@ -153,11 +153,7 @@ void Scanner::number() {
   std::string text = m_source.substr(m_start, m_current - m_start);
   auto value = detail::parseNumber(text);
 
-  auto add_token = [this]<typename T>(T&& arg) {
-    addToken(TokenType::NUMBER, std::move(arg));
-  };
-
-  std::visit(add_token, value);
+  addToken(TokenType::NUMBER, value);
 }
 
 char Scanner::peekNext() const {
