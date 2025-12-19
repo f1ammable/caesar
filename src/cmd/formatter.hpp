@@ -2,8 +2,9 @@
 #define FORMATTER_H
 
 #include <format>
-#include "object.hpp"
+
 #include "callable.hpp"
+#include "object.hpp"
 
 template <>
 struct std::formatter<Object> {

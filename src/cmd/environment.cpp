@@ -8,6 +8,11 @@
 #include "token.hpp"
 
 void Environment::define(const std::string& name, Object value) {
+  if (m_values.contains(name))
+    if (auto ptr = std::get_if<std::shared_ptr<Callable>>(&m_values[name]))
+      throw RuntimeError(
+          std::format("Cannot assign to {} as it is a function", name));
+
   m_values[name] = value;
 }
 
@@ -18,8 +23,11 @@ Object Environment::get(Token name) {
 
 void Environment::assign(Token name, Object value) {
   if (m_values.contains(name.m_lexeme)) {
-      if (auto* val = std::get_if<std::shared_ptr<Callable>>(&m_values[name.m_lexeme]); val != nullptr)
-      throw RuntimeError(std::format("Cannot reassign {} as it is a function", name.m_lexeme));
+    if (auto* val =
+            std::get_if<std::shared_ptr<Callable>>(&m_values[name.m_lexeme]);
+        val != nullptr)
+      throw RuntimeError(
+          std::format("Cannot reassign {} as it is a function", name.m_lexeme));
     m_values[name.m_lexeme] = value;
     return;
   }

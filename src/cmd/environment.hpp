@@ -2,13 +2,18 @@
 #define ENVIRONMENT_HPP
 
 #include <map>
+#include <memory>
 
 #include "object.hpp"
+#include "stdlib.hpp"
 #include "token.hpp"
 class Environment {
  private:
   std::map<std::string, Object> m_values = {};
-  Environment() = default;
+  inline Environment() {
+    this->define("print", std::make_shared<PrintFn>(PrintFn()));
+    this->define("len", std::make_shared<LenFn>(LenFn()));
+  }
 
  public:
   void define(const std::string& name, Object value);
