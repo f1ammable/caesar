@@ -14,10 +14,11 @@ class Callable {
   virtual ~Callable() = default;
   virtual Object call(Interpreter& interpreter, std::vector<Object> args) = 0;
   virtual int arity() const = 0;
-  [[nodiscard]]  virtual std::string str() const = 0;
+  [[nodiscard]] virtual std::string str() const = 0;
 };
 
-template <typename T> requires std::derived_from<T, Callable>
+template <typename T>
+  requires std::derived_from<T, Callable>
 struct std::formatter<T> {
   constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 

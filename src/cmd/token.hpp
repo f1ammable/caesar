@@ -3,8 +3,8 @@
 #include <map>
 #include <string>
 
-#include "object.hpp"
 #include "formatter.hpp"
+#include "object.hpp"
 
 enum class TokenType {
   LEFT_PAREN,

@@ -25,9 +25,7 @@ std::unique_ptr<Expr> Parser::equality() {
   return expr;
 }
 
-bool Parser::check(TokenType type) {
-  return peek().m_type == type;
-}
+bool Parser::check(TokenType type) { return peek().m_type == type; }
 
 Token Parser::advance() {
   if (!isAtEnd()) m_current++;
@@ -141,7 +139,7 @@ void Parser::synchronise() {
 std::unique_ptr<Stmnt> Parser::statement() {
   if (check(TokenType::IDENTIFIER)) {
     int saved = m_current;
-    advance(); 
+    advance();
     if (!check(TokenType::EQUAL)) {
       m_current = saved;
       return funStmnt();

@@ -9,9 +9,7 @@ void Err::report(const std::string& where, const std::string& msg) {
   hadError = true;
 }
 
-void Err::error(const std::string& msg) {
-  report("", msg);
-}
+void Err::error(const std::string& msg) { report("", msg); }
 
 void Err::error(Token token, const std::string& msg) {
   if (token.m_type == TokenType::END) {
