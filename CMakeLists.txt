@@ -12,6 +12,27 @@ option(ENABLE_COVERAGE "Enable code coverage" OFF)
 add_subdirectory(src/cmd)
 add_subdirectory(src/core)
 
+# Add coverage flags if enabled
+if(ENABLE_COVERAGE)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    # Clang
+    set(COVERAGE_COMPILE_FLAGS -fprofile-instr-generate -fcoverage-mapping)
+    set(COVERAGE_LINK_FLAGS -fprofile-instr-generate)
+  elseif(CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+    # GCC
+    set(COVERAGE_COMPILE_FLAGS --coverage)
+    set(COVERAGE_LINK_FLAGS --coverage)
+  endif()
+
+  # Apply coverage flags to libraries
+  target_compile_options(caesar_cmd PUBLIC ${COVERAGE_COMPILE_FLAGS})
+  target_link_options(caesar_cmd PUBLIC ${COVERAGE_LINK_FLAGS})
+  target_compile_options(caesar_core PUBLIC ${COVERAGE_COMPILE_FLAGS})
+  target_link_options(caesar_core PUBLIC ${COVERAGE_LINK_FLAGS})
+
+  message(STATUS "Code coverage enabled")
+endif()
+
 add_executable(caesar src/main.cpp)
 target_link_libraries(caesar PRIVATE caesar_cmd caesar_core)
 
@@ -26,6 +47,12 @@ if(CAESAR_BUILD_TESTS)
   find_package(Catch2 CONFIG REQUIRED)
   add_executable(
     caesar_test
+      test/cmd/test_environment.cpp
+      test/cmd/test_error.cpp
+      test/cmd/test_integration.cpp
+      test/cmd/test_interpreter.cpp
+      test/cmd/test_object.cpp
+      test/cmd/test_parser.cpp
       test/cmd/test_scanner.cpp
   )
 

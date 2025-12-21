@@ -2,3 +2,12 @@
 build/
 vcpkg-manifest-install.log
 vcpkg_installed
+
+# Coverage
+coverage/
+*.profraw
+*.profdata
+*.gcda
+*.gcno
+*.gcov
+*.info
