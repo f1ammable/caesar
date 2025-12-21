@@ -2,6 +2,7 @@
   "name": "caesar",
   "version": "0.1.0",
   "dependencies": [
-    "libdwarf"
+    "libdwarf",
+    "catch2"
   ]
 }
