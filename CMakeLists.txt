@@ -6,37 +6,33 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 project(caesar VERSION 0.1.0)
 
-set(CMD_SOURCES
-    src/cmd/error.cpp
-    src/cmd/scanner.cpp
-    src/cmd/error.hpp
-    src/cmd/scanner.hpp
-    src/cmd/token.hpp
-    src/cmd/util.cpp
-    src/cmd/util.hpp
-    src/cmd/expr.hpp
-    src/cmd/astprint.cpp
-    src/cmd/astprint.hpp
-    src/cmd/parser.hpp
-    src/cmd/parser.cpp
-    src/cmd/parse_error.hpp
-    src/cmd/interpreter.cpp
-    src/cmd/interpreter.hpp
-    src/cmd/stmnt.hpp
-    src/cmd/environment.hpp
-    src/cmd/environment.cpp
-    src/cmd/callable.hpp
-    src/cmd/stdlib.hpp)
+# Optional: Enable code coverage
+option(ENABLE_COVERAGE "Enable code coverage" OFF)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-  list(APPEND CORE_SOURCES src/core/macho.hpp src/core/macho.cpp)
-endif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+add_subdirectory(src/cmd)
+add_subdirectory(src/core)
 
-set(CORE_SOURCES src/core/util.hpp)
-set(DWARF_SOURCES src/core/dwarf/context.cpp src/core/dwarf/context.hpp
-                  src/core/dwarf/alloc.hpp)
-add_executable(caesar src/main.cpp ${CMD_SOURCES} ${CORE_SOURCES}
-                      ${DWARF_SOURCES})
+add_executable(caesar src/main.cpp)
+target_link_libraries(caesar PRIVATE caesar_cmd caesar_core)
 
-find_package(libdwarf CONFIG REQUIRED)
-target_link_libraries(caesar PUBLIC libdwarf::dwarf)
+# Optional: Build tests
+if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR OR CAESAR_BUILD_TESTS)
+  option(CAESAR_BUILD_TESTS "Build tests" ON)
+else()
+  option(CAESAR_BUILD_TESTS "Build tests" OFF)
+endif()
+
+if(CAESAR_BUILD_TESTS)
+  find_package(Catch2 CONFIG REQUIRED)
+  add_executable(
+    caesar_test
+      test/cmd/test_scanner.cpp
+  )
+
+  target_link_libraries(caesar_test PRIVATE caesar_cmd caesar_core Catch2::Catch2WithMain)
+
+  include(CTest)
+  include(Catch)
+  enable_testing()
+  catch_discover_tests(caesar_test)
+endif()
