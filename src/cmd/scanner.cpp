@@ -8,7 +8,8 @@
 #include "token.hpp"
 #include "util.hpp"
 
-Scanner::Scanner(std::string source) : m_source(std::move(source)) {}
+Scanner::Scanner(const std::string& source) noexcept
+    : m_source(std::move(source)) {}
 
 std::vector<Token> Scanner::scanTokens() {
   while (!isAtEnd()) {
@@ -53,20 +54,11 @@ void Scanner::scanToken() {
       addToken(match('=') ? TokenType::GREATER_EQUAL : TokenType::GREATER);
       break;
     case '/':
-      if (match('/')) {
-        while (peek() != '\n' && !isAtEnd()) {
-          advance();
-        }
-      } else {
-        addToken(TokenType::SLASH);
-      }
+      addToken(TokenType::SLASH);
       break;
     case ' ':
     case '\r':
     case '\t':
-      break;
-    case '\n':
-      m_line++;
       break;
     case '"':
       string();
@@ -104,9 +96,6 @@ char Scanner::peek() const {
 
 void Scanner::string() {
   while (peek() != '"' && !isAtEnd()) {
-    if (peek() == '\n') {
-      m_line++;
-    }
     advance();
   }
 
