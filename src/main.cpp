@@ -38,7 +38,7 @@ void runPrompt() {
     line.clear();
     std::cout << "> ";
     std::getline(std::cin, line);
-    if (line.empty()) break;
+    if (line.empty()) continue;
     run(line);
     e.hadError = false;
   }
