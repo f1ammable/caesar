@@ -1,52 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
-#include <iostream>
-#include <ostream>
-#include <sstream>
 
-#include "scanner.hpp"
+#include "test_helpers.hpp"
 #include "token.hpp"
-
-namespace helpers {
-// Pass here expected amount of tokens WITHOUT end token
-inline bool checkTokensSize(const size_t actual, const size_t expected) {
-  return actual == expected + 1;
-}
-
-inline bool checkTokenType(const Token& token, const TokenType& expectedType) {
-  return token.m_type == expectedType;
-}
-
-inline std::vector<Token> scan(const std::string& src) {
-  Scanner s(src);
-  auto tokens = s.scanTokens();
-  REQUIRE(!tokens.empty());
-  REQUIRE(tokens.back().m_type == TokenType::END);
-  return tokens;
-}
-
-class AutoRestoreRdbuf {
-  std::ostream& out;
-  std::streambuf* old;
-
- public:
-  ~AutoRestoreRdbuf() { out.rdbuf(old); }
-  AutoRestoreRdbuf(const AutoRestoreRdbuf&) = delete;
-  AutoRestoreRdbuf(AutoRestoreRdbuf&&) = delete;
-
-  AutoRestoreRdbuf(std::ostream& out) : out(out), old(out.rdbuf()) {}
-};
-
-inline std::string captureStream(
-    std::function<std::vector<Token>(const std::string&)> fn,
-    const std::string& in, std::ostream& out = std::cout) {
-  AutoRestoreRdbuf restore{std::cout};
-  std::ostringstream oss;
-  std::cout.rdbuf(oss.rdbuf());
-  fn(in);
-  return oss.str();
-}
-}  // namespace helpers
 
 TEST_CASE("Test single-character tokenisation", "[scanner]") {
   auto [input, expected_type] =
@@ -112,7 +68,8 @@ TEST_CASE("Test errors on malformed input", "[scanner]") {
 
   std::string captured{};
   try {
-    captured = helpers::captureStream(&helpers::scan, input);
+    captured =
+        helpers::captureStream<std::vector<Token>>(&helpers::scan, input);
   } catch (...) {
     REQUIRE(captured == error_message);
   }
