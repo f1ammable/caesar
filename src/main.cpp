@@ -8,18 +8,15 @@
 #include "cmd/scanner.hpp"
 #include "cmd/token.hpp"
 
-Err& e = Err::getInstance();
+Error& e = Error::getInstance();
 
 void run(const std::string& src) {
   auto s = Scanner(src);
   const std::vector<Token> tokens = s.scanTokens();
-  std::unique_ptr<Stmnt> statement{};
-  // TODO: Remove exceptions entirely
-  try {
-    Parser p = Parser(tokens);
-    statement = p.parse();
-  } catch (ParseError& err) {
-  }
+  if (e.hadError) return;  // Stop if scan errors occurred
+
+  Parser p = Parser(tokens);
+  std::unique_ptr<Stmnt> statement = p.parse();
   if (e.hadError) return;
 
   Interpreter interpreter = Interpreter();
@@ -32,20 +29,21 @@ void runFile(const std::string& path) {
   buffer << file.rdbuf();
   run(buffer.str());
   if (e.hadError) exit(65);
-  if (e.hadRuntimeError) exit(70);
 }
 
 void runPrompt() {
   std::string line;
 
-  for (;;) {
+  while (true) {
     line.clear();
     std::cout << "> ";
-    std::getline(std::cin, line);
+    std::cout.flush();
+    if (!std::getline(std::cin, line)) break;
     if (line.empty()) continue;
     run(line);
     e.hadError = false;
   }
+  std::cout << std::endl;
 }
 
 // lol

@@ -2,31 +2,23 @@
 
 #include <iostream>
 
-#include "runtime_error.hpp"
+#include "formatter.hpp"
+#include "token.hpp"
 
-void Err::report(const std::string& where, const std::string& msg) {
-  std::cout << std::format("Error {}: {}\n", where, msg);
+void Error::_error(TokenType where, const std::string& msg, ErrorType type) {
+  std::cerr << std::format("{} error at {} : {}", type, where, msg)
+            << std::endl;
   hadError = true;
 }
 
-void Err::error(const std::string& msg) { report("", msg); }
-
-void Err::error(Token token, const std::string& msg) {
-  if (token.m_type == TokenType::END) {
-    report(" at end", msg);
-  } else {
-    report(std::format("at '{}'", token.m_lexeme), msg);
-  }
+void Error::error(TokenType where, const std::string& msg, ErrorType type) {
+  Error& e = Error::getInstance();
+  e._error(where, msg, type);
 }
 
-void Err::runtimeError(RuntimeError& err) {
-  std::cerr << err.what() << std::endl;
-  hadRuntimeError = true;
-}
+Error::Error() : hadError(false) {}
 
-Err::Err() : hadError(false), hadRuntimeError(false) {}
-
-Err& Err::getInstance() {
-  static Err instance;
+Error& Error::getInstance() {
+  static Error instance;
   return instance;
 }

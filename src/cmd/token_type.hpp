@@ -1,0 +1,29 @@
+#ifndef CAESAR_TOKEN_TYPE_H
+#define CAESAR_TOKEN_TYPE_H
+
+enum class TokenType {
+  LEFT_PAREN,
+  RIGHT_PAREN,
+  MINUS,
+  PLUS,
+  SLASH,
+  STAR,
+  BANG,
+  BANG_EQUAL,
+  EQUAL,
+  EQUAL_EQUAL,
+  GREATER,
+  GREATER_EQUAL,
+  LESS,
+  LESS_EQUAL,
+  IDENTIFIER,
+  STRING,
+  NUMBER,
+  NIL,
+  TRUE,
+  FALSE,
+  VAR,
+  END,
+};
+
+#endif

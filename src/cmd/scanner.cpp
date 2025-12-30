@@ -17,7 +17,7 @@ std::vector<Token> Scanner::scanTokens() {
     scanToken();
   }
 
-  m_tokens.emplace_back(TokenType::END, "", std::monostate{}, m_line);
+  m_tokens.emplace_back(TokenType::END, "", std::monostate{});
   return m_tokens;
 }
 
@@ -69,7 +69,8 @@ void Scanner::scanToken() {
       } else if (isalpha(c)) {
         identifier();
       } else {
-        e.error("Unexpected character");
+        Error::error(TokenType::END, "Unexpected character",
+                     ErrorType::ScanError);
       }
       break;
   }
@@ -100,7 +101,8 @@ void Scanner::string() {
   }
 
   if (isAtEnd()) {
-    e.error("Unterminated string");
+    Error::error(TokenType::STRING, "Unterminated string",
+                 ErrorType::ScanError);
     return;
   }
 

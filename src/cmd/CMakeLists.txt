@@ -11,7 +11,6 @@ add_library(caesar_cmd STATIC
     astprint.hpp
     parser.hpp
     parser.cpp
-    parse_error.hpp
     interpreter.cpp
     interpreter.hpp
     stmnt.hpp
@@ -20,7 +19,6 @@ add_library(caesar_cmd STATIC
     callable.hpp
     stdlib.hpp
     object.hpp
-    runtime_error.hpp
     formatter.hpp
 )
 

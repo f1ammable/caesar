@@ -1,27 +1,44 @@
 #ifndef ERROR_H
 #define ERROR_H
+#include <format>
+#include <map>
 #include <string>
 
-#include "runtime_error.hpp"
-#include "token.hpp"
+enum class ErrorType { ParseError, ScanError, RuntimeError };
+enum class TokenType;
 
-class Err {
+class Error {
  private:
-  Err();
+  Error();
+  void _error(TokenType where, const std::string& msg, ErrorType type);
 
  public:
-  Err(Err& other) = delete;
-  Err& operator=(const Err& other) = delete;
-  Err(Err&& other) = delete;
-  Err& operator=(Err&& other) = delete;
+  Error(Error& other) = delete;
+  Error& operator=(const Error& other) = delete;
+  Error(Error&& other) = delete;
+  Error& operator=(Error&& other) = delete;
 
   bool hadError;
-  bool hadRuntimeError;
-  void report(const std::string& where, const std::string& msg);
-  void error(const std::string& msg);
-  void error(Token token, const std::string& msg);
-  void runtimeError(RuntimeError& err);
-  static Err& getInstance();
+  static void error(TokenType where, const std::string& msg, ErrorType type);
+  static Error& getInstance();
+};
+
+template <>
+struct std::formatter<ErrorType> : std::formatter<std::string_view> {
+  constexpr auto format(ErrorType type, auto& ctx) const {
+    const auto str = [] {
+      std::map<ErrorType, std::string> res;
+#define INSERT_ELEM(p) res.emplace(p, #p);
+      INSERT_ELEM(ErrorType::ParseError);
+      INSERT_ELEM(ErrorType::ScanError);
+      INSERT_ELEM(ErrorType::RuntimeError);
+#undef INSERT_ELEM
+
+      return res;
+    };
+
+    return std::formatter<std::string_view>::format(str()[type], ctx);
+  };
 };
 
 #endif
