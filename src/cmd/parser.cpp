@@ -138,15 +138,7 @@ std::unique_ptr<Stmnt> Parser::exprStmnt() {
   return std::make_unique<ExprStmnt>(std::move(expr));
 }
 
-std::vector<std::unique_ptr<Stmnt>> Parser::parse() {
-  std::vector<std::unique_ptr<Stmnt>> statements;
-
-  while (!isAtEnd()) {
-    statements.emplace_back(declaration());
-  }
-
-  return statements;
-}
+std::unique_ptr<Stmnt> Parser::parse() { return declaration(); }
 
 std::unique_ptr<Stmnt> Parser::declaration() {
   if (match(TokenType::VAR)) return varDeclaration();
