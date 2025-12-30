@@ -5,9 +5,9 @@
 #include <vector>
 
 #include "expr.hpp"
-#include "parse_error.hpp"
 #include "stmnt.hpp"
 #include "token.hpp"
+
 class Parser {
  private:
   std::vector<Token> m_tokens;
@@ -36,7 +36,6 @@ class Parser {
   Token consumeAnyOf(Args... tokens, const std::string& msg) {
     return (... || consume(tokens, msg));
   }
-  ParseError error(Token token, const std::string& msg);
   std::unique_ptr<Stmnt> statement();
   std::unique_ptr<Stmnt> exprStmnt();
   std::unique_ptr<Stmnt> declaration();

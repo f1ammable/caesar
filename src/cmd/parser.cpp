@@ -5,7 +5,6 @@
 
 #include "error.hpp"
 #include "expr.hpp"
-#include "parse_error.hpp"
 #include "stmnt.hpp"
 #include "token.hpp"
 
@@ -90,7 +89,8 @@ std::unique_ptr<Expr> Parser::primary() {
     return std::make_unique<Grouping>(std::move(e));
   }
 
-  throw error(peek(), "Expected expression.");
+  Error::error(peek().m_type, "Expected expression.", ErrorType::ParseError);
+  return nullptr;
 }
 
 std::unique_ptr<Expr> Parser::comparison() {
@@ -109,13 +109,8 @@ std::unique_ptr<Expr> Parser::comparison() {
 Token Parser::consume(TokenType type, const std::string& msg) {
   if (check(type)) return advance();
 
-  throw error(peek(), msg);
-}
-
-ParseError Parser::error(Token token, const std::string& msg) {
-  Err& err = Err::getInstance();
-  err.error(token, msg);
-  return ParseError();
+  Error::error(peek().m_type, msg, ErrorType::ParseError);
+  return peek();  // Return current token on error
 }
 
 std::unique_ptr<Stmnt> Parser::statement() {
@@ -134,6 +129,7 @@ std::unique_ptr<Stmnt> Parser::statement() {
 
 std::unique_ptr<Stmnt> Parser::exprStmnt() {
   std::unique_ptr<Expr> expr = expression();
+  if (!expr) return nullptr;  // Don't continue if expression failed
   consume(TokenType::END, "Expect EOF after expression.");
   return std::make_unique<ExprStmnt>(std::move(expr));
 }
@@ -148,7 +144,10 @@ std::unique_ptr<Stmnt> Parser::declaration() {
 std::unique_ptr<Stmnt> Parser::varDeclaration() {
   Token name = consume(TokenType::IDENTIFIER, "Expect variable name");
   std::unique_ptr<Expr> initialiser = {};
-  if (match(TokenType::EQUAL)) initialiser = expression();
+  if (match(TokenType::EQUAL)) {
+    initialiser = expression();
+    if (!initialiser) return nullptr;  // Don't continue if expression failed
+  }
   consume(TokenType::END, "Expect EOF after variable declaration");
   return std::make_unique<VarStmnt>(name, std::move(initialiser));
 }
@@ -165,7 +164,8 @@ std::unique_ptr<Expr> Parser::assignment() {
       return std::make_unique<Assign>(name, std::move(value));
     }
 
-    error(equals, "Invalid assignment target.");
+    Error::error(equals.m_type, "Invalid assignment target.",
+                 ErrorType::ParseError);
   }
 
   return expr;
@@ -177,7 +177,9 @@ std::unique_ptr<Stmnt> Parser::funStmnt() {
   std::vector<std::unique_ptr<Expr>> args = {};
 
   while (!check(TokenType::END)) {
-    args.emplace_back(expression());
+    auto arg = expression();
+    if (!arg) return nullptr;  // Don't continue if expression failed
+    args.emplace_back(std::move(arg));
   }
 
   consume(TokenType::END, "Expect EOF after function call.");
