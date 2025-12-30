@@ -9,7 +9,6 @@
 
 class Scanner {
  private:
-  Error& e = Error::getInstance();
   const std::string m_source;
   std::vector<Token> m_tokens;
   int m_start = 0;

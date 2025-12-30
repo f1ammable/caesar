@@ -13,6 +13,8 @@ Error& e = Error::getInstance();
 void run(const std::string& src) {
   auto s = Scanner(src);
   const std::vector<Token> tokens = s.scanTokens();
+  if (e.hadError) return;  // Stop if scan errors occurred
+
   Parser p = Parser(tokens);
   std::unique_ptr<Stmnt> statement = p.parse();
   if (e.hadError) return;
@@ -36,12 +38,12 @@ void runPrompt() {
     line.clear();
     std::cout << "> ";
     std::cout.flush();
-    if (!std::getline(std::cin, line)) break;  // Exit on EOF or read error
+    if (!std::getline(std::cin, line)) break;
     if (line.empty()) continue;
     run(line);
     e.hadError = false;
   }
-  std::cout << std::endl;  // Print newline after EOF
+  std::cout << std::endl;
 }
 
 // lol
