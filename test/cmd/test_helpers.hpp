@@ -79,10 +79,10 @@ class AutoRestoreRdbuf {
 template <typename Return>
 inline std::string captureStream(std::function<Return(const std::string&)> fn,
                                  const std::string& in,
-                                 std::ostream& out = std::cout) {
-  AutoRestoreRdbuf restore{std::cout};
+                                 std::ostream& out = std::cerr) {
+  AutoRestoreRdbuf restore{std::cerr};
   std::ostringstream oss;
-  std::cout.rdbuf(oss.rdbuf());
+  std::cerr.rdbuf(oss.rdbuf());
   fn(in);
   return oss.str();
 }

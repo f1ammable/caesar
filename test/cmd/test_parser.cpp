@@ -6,7 +6,6 @@
 
 #include "expr.hpp"
 #include "object.hpp"
-#include "parse_error.hpp"
 #include "stmnt.hpp"
 #include "test_helpers.hpp"
 #include "token.hpp"
@@ -240,15 +239,22 @@ TEST_CASE("Test equality operator parsing",
 
 TEST_CASE("Test parser error handling", "[parser][expressions][errors]") {
   SECTION("Invalid primary expression") {
-    REQUIRE_THROWS_AS(helpers::getStmnt(")"), ParseError);
+    auto captured =
+        helpers::captureStream<std::unique_ptr<Stmnt>>(&helpers::getStmnt, ")");
+    REQUIRE(captured.find("Expected expression") != std::string::npos);
   }
 
   SECTION("Missing closing parenthesis") {
-    REQUIRE_THROWS_AS(helpers::getStmnt("(5"), ParseError);
+    auto captured = helpers::captureStream<std::unique_ptr<Stmnt>>(
+        &helpers::getStmnt, "(5");
+    REQUIRE(captured.find("Expect \')\' after expression") !=
+            std::string::npos);
   }
 
   SECTION("Variable declaration without name") {
-    REQUIRE_THROWS_AS(helpers::getStmnt("var"), ParseError);
+    auto captured = helpers::captureStream<std::unique_ptr<Stmnt>>(
+        &helpers::getStmnt, "var");
+    REQUIRE(captured.find("Expect variable name") != std::string::npos);
   }
 
   SECTION("Invalid assignment target") {
