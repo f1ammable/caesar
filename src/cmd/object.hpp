@@ -4,12 +4,14 @@
 #include <cstring>
 #include <format>
 #include <functional>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <type_traits>
 #include <variant>
 
-#include "runtime_error.hpp"
+#include "error.hpp"
+#include "token_type.hpp"
 
 class Callable;
 
@@ -31,12 +33,17 @@ inline Object binary_operation(const Object& lhs, const Object& rhs, Op op,
       if constexpr (std::is_same_v<Op, std::plus<>>) {
         return left + right;
       } else {
-        throw RuntimeError(
-            std::format("Cannot apply operator {} to strings", op_name));
+        Error::error(
+            TokenType::STRING,
+            std::format("Cannot apply operator {} to strings", op_name),
+            ErrorType::RuntimeError);
+        return std::monostate{};
       }
     } else {
-      throw RuntimeError(
-          std::format("Unsupported operand types for {}", op_name));
+      Error::error(TokenType::STRING,
+                   std::format("Unsupported operand types for {}", op_name),
+                   ErrorType::RuntimeError);
+      return std::monostate{};
     }
   };
 
@@ -53,8 +60,12 @@ inline bool comparison_operation(const Object& lhs, const Object& rhs, Op op,
     if constexpr (std::is_arithmetic_v<L> && std::is_arithmetic_v<R>) {
       return op(static_cast<double>(left), static_cast<double>(right));
     } else {
-      throw RuntimeError(std::format(
-          "Cannot apply operator {} to non-arithmetic types", op_name));
+      Error::error(
+          TokenType::STRING,
+          std::format("Cannot apply operator {} to non-arithmetic types",
+                      op_name),
+          ErrorType::RuntimeError);
+      return false;
     }
   };
 

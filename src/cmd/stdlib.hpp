@@ -3,6 +3,7 @@
 
 #include <variant>
 
+#include "error.hpp"
 #include "formatter.hpp"
 
 class LenFn : public Callable {
@@ -13,7 +14,11 @@ class LenFn : public Callable {
   Object call(Interpreter& interpreter, std::vector<Object> args) override {
     auto* val = std::get_if<std::string>(&args[0]);
 
-    if (!val) throw RuntimeError("len can only be called on a string");
+    if (!val) {
+      Error::error(TokenType::IDENTIFIER, "len can only be called on a string",
+                   ErrorType::RuntimeError);
+      return std::monostate{};
+    }
 
     return (double)val->length();
   }

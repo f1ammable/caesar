@@ -9,12 +9,11 @@
 
 class Scanner {
  private:
-  Err& e = Err::getInstance();
+  Error& e = Error::getInstance();
   const std::string m_source;
   std::vector<Token> m_tokens;
   int m_start = 0;
   int m_current = 0;
-  int m_line = 1;
   std::map<std::string, TokenType> m_keywords = {{"false", TokenType::FALSE},
                                                  {"nil", TokenType::NIL},
                                                  {"true", TokenType::TRUE},
@@ -28,7 +27,7 @@ class Scanner {
     requires std::constructible_from<Object, T>
   void addToken(TokenType tokenType, const T& literal) {
     const std::string text = m_source.substr(m_start, m_current - m_start);
-    m_tokens.emplace_back(tokenType, text, literal, m_line);
+    m_tokens.emplace_back(tokenType, text, literal);
   }
   bool match(char expected);
   [[nodiscard]] char peek() const;

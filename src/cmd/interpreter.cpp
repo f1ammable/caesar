@@ -8,7 +8,6 @@
 #include "error.hpp"
 #include "expr.hpp"
 #include "object.hpp"
-#include "runtime_error.hpp"
 #include "stmnt.hpp"
 #include "token.hpp"
 
@@ -40,7 +39,8 @@ void Interpreter::checkNumberOperand(const Token& op, const Object& operand) {
 
     if constexpr (std::is_same_v<T, double>) return;
 
-    throw RuntimeError("Operand must be a number");
+    Error::error(op.m_type, "Operand must be a number",
+                 ErrorType::RuntimeError);
   };
 
   std::visit(visitor, operand);
@@ -51,12 +51,7 @@ std::string Interpreter::stringify(const Object& object) {
 }
 
 void Interpreter::interpret(const std::unique_ptr<Stmnt>& stmnt) {
-  try {
-    execute(stmnt);
-  } catch (RuntimeError& e) {
-    Err& err = Err::getInstance();
-    err.runtimeError(e);
-  }
+  execute(stmnt);
 }
 
 Object Interpreter::visitLiteralExpr(const Literal& expr) {
@@ -133,10 +128,14 @@ Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
   auto fn = std::get_if<std::shared_ptr<Callable>>(&fnObj);
 
   if (fn) {
-    if (argList.size() != fn->get()->arity())
-      throw RuntimeError(
+    if (argList.size() != fn->get()->arity()) {
+      Error::error(
+          stmnt.m_fn.m_type,
           std::format("Function requires {} arguments but {} were provided",
-                      fn->get()->arity(), argList.size()));
+                      fn->get()->arity(), argList.size()),
+          ErrorType::RuntimeError);
+      return std::monostate{};
+    }
   }
   std::cout << stringify(fn->get()->call(*this, argList)) << std::endl;
   return std::monostate{};

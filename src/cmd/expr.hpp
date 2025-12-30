@@ -5,6 +5,7 @@
 #include <memory>
 #include <utility>
 
+#include "formatter.hpp"
 #include "object.hpp"
 #include "token.hpp"
 
