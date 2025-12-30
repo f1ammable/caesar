@@ -37,9 +37,7 @@ class Parser {
     return (... || consume(tokens, msg));
   }
   ParseError error(Token token, const std::string& msg);
-  void synchronise();
   std::unique_ptr<Stmnt> statement();
-  std::unique_ptr<Stmnt> printStmnt();
   std::unique_ptr<Stmnt> exprStmnt();
   std::unique_ptr<Stmnt> declaration();
   std::unique_ptr<Stmnt> varDeclaration();
