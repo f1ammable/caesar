@@ -50,11 +50,9 @@ std::string Interpreter::stringify(const Object& object) {
   return std::format("{}", object);
 }
 
-void Interpreter::interpret(const std::vector<std::unique_ptr<Stmnt>>& stmnts) {
+void Interpreter::interpret(const std::unique_ptr<Stmnt>& stmnt) {
   try {
-    for (const auto& s : stmnts) {
-      execute(s);
-    }
+    execute(stmnt);
   } catch (RuntimeError& e) {
     Err& err = Err::getInstance();
     err.runtimeError(e);

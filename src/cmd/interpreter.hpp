@@ -23,7 +23,7 @@ class Interpreter : public IExprVisitor, IStmntVisitor {
   Object visitUnaryExpr(const Unary& expr) override;
   Object visitBinaryExpr(const Binary& expr) override;
   Object visitVariableExpr(const Variable& expr) override;
-  void interpret(const std::vector<std::unique_ptr<Stmnt>>& stmnts);
+  void interpret(const std::unique_ptr<Stmnt>& stmnt);
   Object visitExprStmnt(const ExprStmnt& stmnt) override;
   Object visitVarStmnt(const VarStmnt& stmnt) override;
   Object visitAssignExpr(const Assign& expr) override;

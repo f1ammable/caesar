@@ -46,7 +46,7 @@ class Parser {
 
  public:
   explicit Parser(std::vector<Token> tokens);
-  std::vector<std::unique_ptr<Stmnt>> parse();
+  std::unique_ptr<Stmnt> parse();
 };
 
 #endif  // !PARSER_HPP

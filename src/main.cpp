@@ -13,13 +13,17 @@ Err& e = Err::getInstance();
 void run(const std::string& src) {
   auto s = Scanner(src);
   const std::vector<Token> tokens = s.scanTokens();
-  Parser p = Parser(tokens);
-  std::vector<std::unique_ptr<Stmnt>> statements = p.parse();
-
+  std::unique_ptr<Stmnt> statement{};
+  // TODO: Remove exceptions entirely
+  try {
+    Parser p = Parser(tokens);
+    statement = p.parse();
+  } catch (ParseError& err) {
+  }
   if (e.hadError) return;
 
   Interpreter interpreter = Interpreter();
-  interpreter.interpret(statements);
+  interpreter.interpret(statement);
 }
 
 void runFile(const std::string& path) {
@@ -44,6 +48,7 @@ void runPrompt() {
   }
 }
 
+// lol
 int main(int argc, char** argv) {
   try {
     if (argc > 2) {
