@@ -9,7 +9,6 @@
 #include "expr.hpp"
 #include "object.hpp"
 #include "runtime_error.hpp"
-#include "stdlib.hpp"
 #include "stmnt.hpp"
 #include "token.hpp"
 
@@ -122,12 +121,6 @@ Object Interpreter::visitBinaryExpr(const Binary& expr) {
 
 Object Interpreter::visitExprStmnt(const ExprStmnt& stmnt) {
   evaluate(stmnt.m_expr);
-  return std::monostate{};
-}
-
-Object Interpreter::visitPrintStmnt(const PrintStmnt& stmnt) {
-  Object value = evaluate(stmnt.m_expr);
-  std::cout << stringify(value) << std::endl;
   return std::monostate{};
 }
 

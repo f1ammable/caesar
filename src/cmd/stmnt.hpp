@@ -8,7 +8,6 @@
 #include "token.hpp"
 
 class ExprStmnt;
-class PrintStmnt;
 class VarStmnt;
 class CallStmnt;
 
@@ -17,7 +16,6 @@ class IStmntVisitor {
   virtual ~IStmntVisitor() = default;
 
   virtual Object visitExprStmnt(const ExprStmnt& stmnt) = 0;
-  virtual Object visitPrintStmnt(const PrintStmnt& stmnt) = 0;
   virtual Object visitVarStmnt(const VarStmnt& stmnt) = 0;
   virtual Object visitCallStmnt(const CallStmnt& stmnt) = 0;
 };
@@ -36,17 +34,6 @@ class ExprStmnt final : public Stmnt {
 
   Object accept(IStmntVisitor* visitor) override {
     return visitor->visitExprStmnt(*this);
-  }
-};
-
-class PrintStmnt final : public Stmnt {
- public:
-  std::unique_ptr<Expr> m_expr;
-
-  PrintStmnt(std::unique_ptr<Expr> expr) : m_expr(std::move(expr)) {}
-
-  Object accept(IStmntVisitor* visitor) override {
-    return visitor->visitPrintStmnt(*this);
   }
 };
 

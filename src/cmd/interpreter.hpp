@@ -25,7 +25,6 @@ class Interpreter : public IExprVisitor, IStmntVisitor {
   Object visitVariableExpr(const Variable& expr) override;
   void interpret(const std::vector<std::unique_ptr<Stmnt>>& stmnts);
   Object visitExprStmnt(const ExprStmnt& stmnt) override;
-  Object visitPrintStmnt(const PrintStmnt& stmnt) override;
   Object visitVarStmnt(const VarStmnt& stmnt) override;
   Object visitAssignExpr(const Assign& expr) override;
   Object visitCallStmnt(const CallStmnt& stmnt) override;

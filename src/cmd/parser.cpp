@@ -118,24 +118,6 @@ ParseError Parser::error(Token token, const std::string& msg) {
   return ParseError();
 }
 
-void Parser::synchronise() {
-  advance();
-
-  while (!isAtEnd()) {
-    if (check(TokenType::END)) return;
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wswitch"
-    switch (peek().m_type) {
-      case TokenType::VAR:
-        return;
-    }
-#pragma clang diagnostic pop
-
-    advance();
-  }
-}
-
 std::unique_ptr<Stmnt> Parser::statement() {
   if (check(TokenType::IDENTIFIER)) {
     int saved = m_current;
@@ -148,12 +130,6 @@ std::unique_ptr<Stmnt> Parser::statement() {
   }
 
   return exprStmnt();
-}
-
-std::unique_ptr<Stmnt> Parser::printStmnt() {
-  std::unique_ptr<Expr> value = expression();
-  consume(TokenType::END, "Expect EOF after value.");
-  return std::make_unique<PrintStmnt>(std::move(value));
 }
 
 std::unique_ptr<Stmnt> Parser::exprStmnt() {
@@ -173,15 +149,8 @@ std::vector<std::unique_ptr<Stmnt>> Parser::parse() {
 }
 
 std::unique_ptr<Stmnt> Parser::declaration() {
-  try {
-    if (match(TokenType::VAR)) return varDeclaration();
-
-    return statement();
-  } catch (ParseError& err) {
-    synchronise();
-    // TODO: Maybe this isn't the _best_ idea
-    return nullptr;
-  }
+  if (match(TokenType::VAR)) return varDeclaration();
+  return statement();
 }
 
 std::unique_ptr<Stmnt> Parser::varDeclaration() {
@@ -199,7 +168,7 @@ std::unique_ptr<Expr> Parser::assignment() {
     Token equals = previous();
     std::unique_ptr<Expr> value = assignment();
 
-    if (auto* ptr = dynamic_cast<Variable*>(value.get())) {
+    if (auto* ptr = dynamic_cast<Variable*>(expr.get())) {
       Token name = ptr->m_name;
       return std::make_unique<Assign>(name, std::move(value));
     }
@@ -216,7 +185,7 @@ std::unique_ptr<Stmnt> Parser::funStmnt() {
   std::vector<std::unique_ptr<Expr>> args = {};
 
   while (!check(TokenType::END)) {
-    args.emplace_back(primary());
+    args.emplace_back(expression());
   }
 
   consume(TokenType::END, "Expect EOF after function call.");
