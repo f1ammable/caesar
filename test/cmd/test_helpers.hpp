@@ -5,6 +5,7 @@
 #include <concepts>
 #include <cstddef>
 #include <iostream>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -76,14 +77,12 @@ class AutoRestoreRdbuf {
   AutoRestoreRdbuf(std::ostream& out) : out(out), old(out.rdbuf()) {}
 };
 
-template <typename Return>
-inline std::string captureStream(std::function<Return(const std::string&)> fn,
-                                 const std::string& in,
-                                 std::ostream& out = std::cerr) {
-  AutoRestoreRdbuf restore{std::cerr};
+template <typename Func, typename... Args>
+inline std::string captureStream(std::ostream& out, Func&& fn, Args&&... args) {
+  AutoRestoreRdbuf restore{out};
   std::ostringstream oss;
-  std::cerr.rdbuf(oss.rdbuf());
-  fn(in);
+  out.rdbuf(oss.rdbuf());
+  std::invoke(std::forward<Func>(fn), std::forward<Args>(args)...);
   return oss.str();
 }
 }  // namespace helpers
