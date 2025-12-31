@@ -68,8 +68,7 @@ TEST_CASE("Test errors on malformed input", "[scanner]") {
 
   std::string captured{};
   try {
-    captured =
-        helpers::captureStream<std::vector<Token>>(&helpers::scan, input);
+    captured = helpers::captureStream(std::cerr, helpers::scan, input);
   } catch (...) {
     REQUIRE(captured == error_message);
   }

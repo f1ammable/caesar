@@ -239,27 +239,24 @@ TEST_CASE("Test equality operator parsing",
 
 TEST_CASE("Test parser error handling", "[parser][expressions][errors]") {
   SECTION("Invalid primary expression") {
-    auto captured =
-        helpers::captureStream<std::unique_ptr<Stmnt>>(&helpers::getStmnt, ")");
+    auto captured = helpers::captureStream(std::cerr, helpers::getStmnt, ")");
     REQUIRE(captured.find("Expected expression") != std::string::npos);
   }
 
   SECTION("Missing closing parenthesis") {
-    auto captured = helpers::captureStream<std::unique_ptr<Stmnt>>(
-        &helpers::getStmnt, "(5");
+    auto captured = helpers::captureStream(std::cerr, helpers::getStmnt, "(5");
     REQUIRE(captured.find("Expect \')\' after expression") !=
             std::string::npos);
   }
 
   SECTION("Variable declaration without name") {
-    auto captured = helpers::captureStream<std::unique_ptr<Stmnt>>(
-        &helpers::getStmnt, "var");
+    auto captured = helpers::captureStream(std::cerr, helpers::getStmnt, "var");
     REQUIRE(captured.find("Expect variable name") != std::string::npos);
   }
 
   SECTION("Invalid assignment target") {
-    auto captured = helpers::captureStream<std::unique_ptr<Stmnt>>(
-        &helpers::getStmnt, "5=10");
+    auto captured =
+        helpers::captureStream(std::cerr, helpers::getStmnt, "5=10");
     REQUIRE(captured.find("Invalid assignment target") != std::string::npos);
   }
 }
