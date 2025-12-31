@@ -101,11 +101,16 @@ inline Object operator*(const Object& lhs, const Object& rhs) {
 }
 
 inline bool operator==(const Object& lhs, const Object& rhs) {
-  return comparison_operation(lhs, rhs, std::equal_to<double>{}, "==");
+  if (lhs.index() == rhs.index()) {
+    return std::visit([](const auto& l, const auto& r) { return l == r; }, lhs,
+                      rhs);
+  };
+
+  return false;
 }
 
 inline bool operator!=(const Object& lhs, const Object& rhs) {
-  return comparison_operation(lhs, rhs, std::not_equal_to<double>{}, "!=");
+  return !(lhs == rhs);
 }
 
 inline bool operator<(const Object& lhs, const Object& rhs) {
