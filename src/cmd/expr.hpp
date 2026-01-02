@@ -26,15 +26,10 @@ class IExprVisitor {
   virtual ~IExprVisitor() = default;
 
   virtual Object visitBinaryExpr(const Binary& expr) = 0;
-
   virtual Object visitGroupingExpr(const Grouping& expr) = 0;
-
   virtual Object visitLiteralExpr(const Literal& expr) = 0;
-
   virtual Object visitUnaryExpr(const Unary& expr) = 0;
-
   virtual Object visitVariableExpr(const Variable& expr) = 0;
-
   virtual Object visitAssignExpr(const Assign& expr) = 0;
 };
 
@@ -89,7 +84,7 @@ class Binary final : public Expr {
         m_op(std::move(op)),
         m_right(std::move(right)) {}
 
-  Object accept(IExprVisitor* visitor) const override {
+  [[nodiscard]] Object accept(IExprVisitor* visitor) const override {
     return visitor->visitBinaryExpr(*this);
   }
 

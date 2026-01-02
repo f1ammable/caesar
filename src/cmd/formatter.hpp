@@ -22,7 +22,7 @@ struct formatter<Object> {
       using T = decay_t<decltype(value)>;
 
       if constexpr (is_same_v<T, monostate>) {
-        return format_to(ctx.out(), "emtpy");
+        return format_to(ctx.out(), "(null)");
       } else if constexpr (is_same_v<T, string>) {
         return format_to(ctx.out(), "{}", value);
       } else if constexpr (is_same_v<T, bool>) {
