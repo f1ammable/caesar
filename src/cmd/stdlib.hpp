@@ -11,7 +11,7 @@ class LenFn : public Callable {
   int arity() const override { return 1; }
   [[nodiscard]] std::string str() const override { return "<native fn: len>"; }
 
-  Object call(Interpreter& interpreter, std::vector<Object> args) override {
+  Object call(std::vector<Object> args) override {
     auto* val = std::get_if<std::string>(&args[0]);
 
     if (!val) {
@@ -31,7 +31,7 @@ class PrintFn : public Callable {
     return "<native fn: print>";
   }
 
-  Object call(Interpreter& interpreter, std::vector<Object> args) override {
+  Object call(std::vector<Object> args) override {
     return std::format("{}", args[0]);
   }
 };

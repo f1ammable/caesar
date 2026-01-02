@@ -12,7 +12,7 @@ class Interpreter;
 class Callable {
  public:
   virtual ~Callable() = default;
-  virtual Object call(Interpreter& interpreter, std::vector<Object> args) = 0;
+  virtual Object call(std::vector<Object> args) = 0;
   virtual int arity() const = 0;
   [[nodiscard]] virtual std::string str() const = 0;
 };

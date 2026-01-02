@@ -50,8 +50,8 @@ std::string Interpreter::stringify(const Object& object) {
   return std::format("{}", object);
 }
 
-void Interpreter::interpret(const std::unique_ptr<Stmnt>& stmnt) {
-  execute(stmnt);
+Object Interpreter::interpret(const std::unique_ptr<Stmnt>& stmnt) {
+  return execute(stmnt);
 }
 
 Object Interpreter::visitLiteralExpr(const Literal& expr) {
@@ -79,7 +79,7 @@ Object Interpreter::visitUnaryExpr(const Unary& expr) {
   return std::monostate{};
 }
 
-Object Interpreter::visitBinaryExpr(const Binary& expr) {
+[[nodiscard]] Object Interpreter::visitBinaryExpr(const Binary& expr) {
   Object left = evaluate(expr.m_left);
   Object right = evaluate(expr.m_right);
 
@@ -113,8 +113,7 @@ Object Interpreter::visitBinaryExpr(const Binary& expr) {
 }
 
 Object Interpreter::visitExprStmnt(const ExprStmnt& stmnt) {
-  evaluate(stmnt.m_expr);
-  return std::monostate{};
+  return evaluate(stmnt.m_expr);
 }
 
 Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
@@ -137,8 +136,7 @@ Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
       return std::monostate{};
     }
   }
-  std::cout << stringify(fn->get()->call(*this, argList)) << std::endl;
-  return std::monostate{};
+  return fn->get()->call(std::move(argList));
 }
 
 Object Interpreter::execute(const std::unique_ptr<Stmnt>& stmnt) {

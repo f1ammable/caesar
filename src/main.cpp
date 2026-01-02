@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <variant>
 
 #include "cmd/error.hpp"
 #include "cmd/interpreter.hpp"
@@ -20,7 +21,10 @@ void run(const std::string& src) {
   if (e.hadError) return;
 
   Interpreter interpreter = Interpreter();
-  interpreter.interpret(statement);
+  Object result = interpreter.interpret(statement);
+  if (e.hadError) return;
+  if (!std::holds_alternative<std::monostate>(result))
+    std::cout << interpreter.stringify(result) << std::endl;
 }
 
 void runFile(const std::string& path) {
