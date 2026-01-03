@@ -85,6 +85,10 @@ inline std::string captureStream(std::ostream& out, Func&& fn, Args&&... args) {
   std::invoke(std::forward<Func>(fn), std::forward<Args>(args)...);
   return oss.str();
 }
+
+inline Token makeToken(const std::string& name) {
+  return Token(TokenType::IDENTIFIER, name, std::monostate{});
+}
 }  // namespace helpers
 
 #endif
