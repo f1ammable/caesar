@@ -117,10 +117,23 @@ std::unique_ptr<Stmnt> Parser::statement() {
   if (check(TokenType::IDENTIFIER)) {
     int saved = m_current;
     advance();
-    if (!check(TokenType::EQUAL)) {
+
+    // Assignment
+    if (check(TokenType::EQUAL)) {
+      m_current = saved;
+      return exprStmnt();
+    }
+
+    // Function call
+    if (check(TokenType::IDENTIFIER) || check(TokenType::NUMBER) ||
+        check(TokenType::STRING) || check(TokenType::LEFT_PAREN) ||
+        check(TokenType::TRUE) || check(TokenType::FALSE) ||
+        check(TokenType::NIL)) {
       m_current = saved;
       return funStmnt();
     }
+
+    // Expression
     m_current = saved;
   }
 
