@@ -7,8 +7,6 @@ add_library(caesar_cmd STATIC
     util.cpp
     util.hpp
     expr.hpp
-    astprint.cpp
-    astprint.hpp
     parser.hpp
     parser.cpp
     interpreter.cpp
