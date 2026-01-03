@@ -15,16 +15,14 @@
 namespace std {
 template <>
 struct formatter<Object> {
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+  static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-  auto format(const Object& obj, format_context& ctx) const {
+  static auto format(const Object& obj, format_context& ctx) {
     auto visitor = [&ctx](const auto& value) -> format_context::iterator {
       using T = decay_t<decltype(value)>;
 
       if constexpr (is_same_v<T, monostate>) {
         return format_to(ctx.out(), "(null)");
-      } else if constexpr (is_same_v<T, string>) {
-        return format_to(ctx.out(), "{}", value);
       } else if constexpr (is_same_v<T, bool>) {
         return format_to(ctx.out(), "{}", value ? "true" : "false");
       } else if constexpr (is_same_v<T, double>) {
@@ -51,18 +49,18 @@ struct formatter<Object> {
 
 template <>
 struct formatter<Token> {
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+  static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-  auto format(const Token& t, format_context& ctx) const {
+  static auto format(const Token& t, format_context& ctx) {
     return format_to(ctx.out(), "{}", t.toString());
   }
 };
 
 template <>
 struct formatter<TokenType> {
-  constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
+  static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
-  auto format(const TokenType& t, format_context& ctx) const {
+  static auto format(const TokenType& t, format_context& ctx) {
     const auto str = [] {
       map<TokenType, string> res;
 #define INSERT_ELEM(p) res.emplace(p, #p);

@@ -36,7 +36,7 @@ class Scanner {
   void identifier();
 
  public:
-  explicit Scanner(const std::string& source) noexcept;
+  explicit Scanner(std::string source) noexcept;
   std::vector<Token> scanTokens();
 };
 

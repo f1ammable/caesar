@@ -1,15 +1,18 @@
 #ifndef ERROR_H
 #define ERROR_H
+#include <cstdint>
 #include <format>
 #include <map>
 #include <string>
 
-enum class ErrorType { ParseError, ScanError, RuntimeError };
-enum class TokenType;
+enum class ErrorType : std::uint8_t { PARSE_ERROR, SCAN_ERROR, RUNTIME_ERROR };
+enum class TokenType : std::uint8_t;
 
+// NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class Error {
  private:
   Error();
+  // NOLINTNEXTLINE(readability-identifier-naming)
   void _error(TokenType where, const std::string& msg, ErrorType type);
 
  public:
@@ -18,7 +21,7 @@ class Error {
   Error(Error&& other) = delete;
   Error& operator=(Error&& other) = delete;
 
-  bool hadError;
+  bool had_error{false};
   static void error(TokenType where, const std::string& msg, ErrorType type);
   static Error& getInstance();
 };
@@ -29,9 +32,9 @@ struct std::formatter<ErrorType> : std::formatter<std::string_view> {
     const auto str = [] {
       std::map<ErrorType, std::string> res;
 #define INSERT_ELEM(p) res.emplace(p, #p);
-      INSERT_ELEM(ErrorType::ParseError);
-      INSERT_ELEM(ErrorType::ScanError);
-      INSERT_ELEM(ErrorType::RuntimeError);
+      INSERT_ELEM(ErrorType::PARSE_ERROR);
+      INSERT_ELEM(ErrorType::SCAN_ERROR);
+      INSERT_ELEM(ErrorType::RUNTIME_ERROR);
 #undef INSERT_ELEM
 
       return res;

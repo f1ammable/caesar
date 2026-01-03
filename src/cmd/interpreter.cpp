@@ -1,7 +1,6 @@
 #include "interpreter.hpp"
 
 #include <format>
-#include <iostream>
 #include <variant>
 
 #include "callable.hpp"
@@ -40,7 +39,7 @@ void Interpreter::checkNumberOperand(const Token& op, const Object& operand) {
     if constexpr (std::is_same_v<T, double>) return;
 
     Error::error(op.m_type, "Operand must be a number",
-                 ErrorType::RuntimeError);
+                 ErrorType::RUNTIME_ERROR);
   };
 
   std::visit(visitor, operand);
@@ -80,8 +79,8 @@ Object Interpreter::visitUnaryExpr(const Unary& expr) {
 }
 
 [[nodiscard]] Object Interpreter::visitBinaryExpr(const Binary& expr) {
-  Object left = evaluate(expr.m_left);
-  Object right = evaluate(expr.m_right);
+  const Object left = evaluate(expr.m_left);
+  const Object right = evaluate(expr.m_right);
 
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wswitch"
@@ -117,22 +116,24 @@ Object Interpreter::visitExprStmnt(const ExprStmnt& stmnt) {
 }
 
 Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
+  // TODO: Use array instead?
   std::vector<Object> argList = {};
+  argList.reserve(stmnt.m_args.size());
 
   for (const auto& x : stmnt.m_args) {
     argList.emplace_back(std::move(evaluate(x)));
   }
 
   Object fnObj = m_env.get(stmnt.m_fn);
-  auto fn = std::get_if<std::shared_ptr<Callable>>(&fnObj);
+  auto* fn = std::get_if<std::shared_ptr<Callable>>(&fnObj);
 
-  if (fn) {
+  if (fn != nullptr) {
     if (argList.size() != fn->get()->arity()) {
       Error::error(
           stmnt.m_fn.m_type,
           std::format("Function requires {} arguments but {} were provided",
                       fn->get()->arity(), argList.size()),
-          ErrorType::RuntimeError);
+          ErrorType::RUNTIME_ERROR);
       return std::monostate{};
     }
   }

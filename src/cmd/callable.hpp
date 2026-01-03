@@ -13,7 +13,7 @@ class Callable {
  public:
   virtual ~Callable() = default;
   virtual Object call(std::vector<Object> args) = 0;
-  virtual int arity() const = 0;
+  [[nodiscard]] virtual int arity() const = 0;
   [[nodiscard]] virtual std::string str() const = 0;
 };
 

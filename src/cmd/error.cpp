@@ -3,12 +3,10 @@
 #include <iostream>
 
 #include "formatter.hpp"
-#include "token.hpp"
 
 void Error::_error(TokenType where, const std::string& msg, ErrorType type) {
-  std::cerr << std::format("{} error at {} : {}", type, where, msg)
-            << std::endl;
-  hadError = true;
+  std::cerr << std::format("{} error at {} : {}\n", type, where, msg);
+  had_error = true;
 }
 
 void Error::error(TokenType where, const std::string& msg, ErrorType type) {
@@ -16,7 +14,7 @@ void Error::error(TokenType where, const std::string& msg, ErrorType type) {
   e._error(where, msg, type);
 }
 
-Error::Error() : hadError(false) {}
+Error::Error() = default;
 
 Error& Error::getInstance() {
   static Error instance;
