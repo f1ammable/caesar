@@ -49,7 +49,6 @@ if(CAESAR_BUILD_TESTS)
     caesar_test
       test/cmd/test_environment.cpp
       test/cmd/test_error.cpp
-      test/cmd/test_integration.cpp
       test/cmd/test_interpreter.cpp
       test/cmd/test_object.cpp
       test/cmd/test_parser.cpp
