@@ -59,6 +59,6 @@ if(CAESAR_BUILD_TESTS)
 
   include(CTest)
   include(Catch)
-  enable_testing()
   catch_discover_tests(caesar_test)
+  enable_testing()
 endif()
