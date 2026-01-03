@@ -8,8 +8,7 @@
 #include "token.hpp"
 #include "util.hpp"
 
-Scanner::Scanner(const std::string& source) noexcept
-    : m_source(std::move(source)) {}
+Scanner::Scanner(std::string source) noexcept : m_source(std::move(source)) {}
 
 std::vector<Token> Scanner::scanTokens() {
   while (!isAtEnd()) {
@@ -24,7 +23,7 @@ std::vector<Token> Scanner::scanTokens() {
 bool Scanner::isAtEnd() const { return m_current >= m_source.length(); }
 
 void Scanner::scanToken() {
-  char c = advance();
+  const char c = advance();
   switch (c) {
     case '(':
       addToken(TokenType::LEFT_PAREN);
@@ -64,13 +63,13 @@ void Scanner::scanToken() {
       string();
       break;
     default:
-      if (isdigit(c)) {
+      if (isdigit(c) != 0) {
         number();
-      } else if (isalpha(c)) {
+      } else if (isalpha(c) != 0) {
         identifier();
       } else {
         Error::error(TokenType::END, "Unexpected character",
-                     ErrorType::ScanError);
+                     ErrorType::SCAN_ERROR);
       }
       break;
   }
@@ -102,7 +101,7 @@ void Scanner::string() {
 
   if (isAtEnd()) {
     Error::error(TokenType::STRING, "Unterminated string",
-                 ErrorType::ScanError);
+                 ErrorType::SCAN_ERROR);
     return;
   }
 
@@ -113,19 +112,19 @@ void Scanner::string() {
 }
 
 void Scanner::number() {
-  while (isdigit(peek())) {
+  while (isdigit(peek()) != 0) {
     advance();
   }
 
-  if (peek() == '.' && isdigit(peekNext())) {
+  if (peek() == '.' && (isdigit(peekNext()) != 0)) {
     advance();
 
-    while (isdigit(peek())) {
+    while (isdigit(peek()) != 0) {
       advance();
     }
   }
 
-  std::string text = m_source.substr(m_start, m_current - m_start);
+  const std::string text = m_source.substr(m_start, m_current - m_start);
   auto value = detail::parseNumber(text);
 
   addToken(TokenType::NUMBER, value);
@@ -139,10 +138,10 @@ char Scanner::peekNext() const {
 }
 
 void Scanner::identifier() {
-  while (isalnum(peek())) advance();
+  while (isalnum(peek()) != 0) advance();
 
   const std::string text = m_source.substr(m_start, m_current - m_start);
-  TokenType type;
+  TokenType type{};
   try {
     type = m_keywords.at(text);
   } catch (std::out_of_range& e) {

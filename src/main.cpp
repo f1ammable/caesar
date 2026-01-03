@@ -1,38 +1,57 @@
+#include <cstdlib>
+#include <exception>
+#include <format>
 #include <fstream>
 #include <iostream>
+#include <memory>
 #include <sstream>
+#include <string>
 #include <variant>
+#include <vector>
 
 #include "cmd/error.hpp"
 #include "cmd/interpreter.hpp"
 #include "cmd/parser.hpp"
 #include "cmd/scanner.hpp"
 #include "cmd/token.hpp"
+#include "object.hpp"
+#include "stmnt.hpp"
 
+namespace {
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 Error& e = Error::getInstance();
 
 void run(const std::string& src) {
   auto s = Scanner(src);
   const std::vector<Token> tokens = s.scanTokens();
-  if (e.hadError) return;  // Stop if scan errors occurred
+  if (e.had_error) {
+    return;  // Stop if scan errors occurred
+  }
 
   Parser p = Parser(tokens);
-  std::unique_ptr<Stmnt> statement = p.parse();
-  if (e.hadError) return;
+  std::unique_ptr<Stmnt> const statement = p.parse();
+  if (e.had_error) {
+    return;
+  }
 
   Interpreter interpreter = Interpreter();
-  Object result = interpreter.interpret(statement);
-  if (e.hadError) return;
-  if (!std::holds_alternative<std::monostate>(result))
-    std::cout << interpreter.stringify(result) << std::endl;
+  Object const result = interpreter.interpret(statement);
+  if (e.had_error) {
+    return;
+  }
+  if (!std::holds_alternative<std::monostate>(result)) {
+    std::cout << Interpreter::stringify(result) << '\n';
+  }
 }
 
 void runFile(const std::string& path) {
-  std::ifstream file(path);
+  std::ifstream const file(path);
   std::stringstream buffer;
   buffer << file.rdbuf();
   run(buffer.str());
-  if (e.hadError) exit(65);
+  if (e.had_error) {
+    exit(65);  // NOLINT(concurrency-mt-unsafe)
+  }
 }
 
 void runPrompt() {
@@ -42,15 +61,19 @@ void runPrompt() {
     line.clear();
     std::cout << "> ";
     std::cout.flush();
-    if (!std::getline(std::cin, line)) break;
-    if (line.empty()) continue;
+    if (!std::getline(std::cin, line)) {
+      break;
+    }
+    if (line.empty()) {
+      continue;
+    }
     run(line);
-    e.hadError = false;
+    e.had_error = false;
   }
-  std::cout << std::endl;
+  std::cout << '\n';
 }
+}  // namespace
 
-// lol
 int main(int argc, char** argv) {
   try {
     if (argc > 2) {

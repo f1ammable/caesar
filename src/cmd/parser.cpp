@@ -16,7 +16,7 @@ std::unique_ptr<Expr> Parser::equality() {
   std::unique_ptr<Expr> expr = comparison();
 
   while (match(TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL)) {
-    Token op = previous();
+    const Token op = previous();
     std::unique_ptr<Expr> right = comparison();
     expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
   }
@@ -41,7 +41,7 @@ std::unique_ptr<Expr> Parser::term() {
   std::unique_ptr<Expr> expr = factor();
 
   while (match(TokenType::MINUS, TokenType::PLUS)) {
-    Token op = previous();
+    const Token op = previous();
     std::unique_ptr<Expr> right = factor();
     expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
   }
@@ -53,7 +53,7 @@ std::unique_ptr<Expr> Parser::factor() {
   std::unique_ptr<Expr> expr = unary();
 
   while (match(TokenType::SLASH, TokenType::STAR)) {
-    Token op = previous();
+    const Token op = previous();
     std::unique_ptr<Expr> right = unary();
     expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
   }
@@ -63,7 +63,7 @@ std::unique_ptr<Expr> Parser::factor() {
 
 std::unique_ptr<Expr> Parser::unary() {
   if (match(TokenType::BANG, TokenType::MINUS)) {
-    Token op = previous();
+    const Token op = previous();
     std::unique_ptr<Expr> right = unary();
     return std::make_unique<Unary>(op, std::move(right));
   }
@@ -89,7 +89,7 @@ std::unique_ptr<Expr> Parser::primary() {
     return std::make_unique<Grouping>(std::move(e));
   }
 
-  Error::error(peek().m_type, "Expected expression.", ErrorType::ParseError);
+  Error::error(peek().m_type, "Expected expression.", ErrorType::PARSE_ERROR);
   return nullptr;
 }
 
@@ -98,7 +98,7 @@ std::unique_ptr<Expr> Parser::comparison() {
 
   while (match(TokenType::GREATER, TokenType::GREATER_EQUAL, TokenType::LESS,
                TokenType::LESS_EQUAL)) {
-    Token op = previous();
+    const Token op = previous();
     std::unique_ptr<Expr> right = term();
     expr = std::make_unique<Binary>(std::move(expr), op, std::move(right));
   }
@@ -109,13 +109,13 @@ std::unique_ptr<Expr> Parser::comparison() {
 Token Parser::consume(TokenType type, const std::string& msg) {
   if (check(type)) return advance();
 
-  Error::error(peek().m_type, msg, ErrorType::ParseError);
+  Error::error(peek().m_type, msg, ErrorType::PARSE_ERROR);
   return peek();  // Return current token on error
 }
 
 std::unique_ptr<Stmnt> Parser::statement() {
   if (check(TokenType::IDENTIFIER)) {
-    int saved = m_current;
+    const int saved = m_current;
     advance();
 
     // Assignment
@@ -155,7 +155,7 @@ std::unique_ptr<Stmnt> Parser::declaration() {
 }
 
 std::unique_ptr<Stmnt> Parser::varDeclaration() {
-  Token name = consume(TokenType::IDENTIFIER, "Expect variable name");
+  const Token name = consume(TokenType::IDENTIFIER, "Expect variable name");
   std::unique_ptr<Expr> initialiser = {};
   if (match(TokenType::EQUAL)) {
     initialiser = expression();
@@ -169,23 +169,23 @@ std::unique_ptr<Expr> Parser::assignment() {
   std::unique_ptr<Expr> expr = equality();
 
   if (match(TokenType::EQUAL)) {
-    Token equals = previous();
+    const Token equals = previous();
     std::unique_ptr<Expr> value = assignment();
 
     if (auto* ptr = dynamic_cast<Variable*>(expr.get())) {
-      Token name = ptr->m_name;
+      const Token name = ptr->m_name;
       return std::make_unique<Assign>(name, std::move(value));
     }
 
     Error::error(equals.m_type, "Invalid assignment target.",
-                 ErrorType::ParseError);
+                 ErrorType::PARSE_ERROR);
   }
 
   return expr;
 }
 
 std::unique_ptr<Stmnt> Parser::funStmnt() {
-  Token fnName = consume(TokenType::IDENTIFIER, "Expect function name");
+  const Token fnName = consume(TokenType::IDENTIFIER, "Expect function name");
 
   std::vector<std::unique_ptr<Expr>> args = {};
 

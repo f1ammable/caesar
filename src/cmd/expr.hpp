@@ -42,16 +42,20 @@ class Expr {
 
 template <>
 struct std::formatter<Expr> {
-  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+  static constexpr auto parse(std::format_parse_context& ctx) {
+    return ctx.begin();
+  }
 
-  auto format(const Expr& t, std::format_context& ctx) const {
+  static auto format(const Expr& t, std::format_context& ctx) {
     return std::format_to(ctx.out(), "{}", t.str());
   }
 };
 
 template <>
 struct std::formatter<Expr*> {
-  constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+  static constexpr auto parse(std::format_parse_context& ctx) {
+    return ctx.begin();
+  }
 
   auto format(Expr* expr, auto& ctx) const {
     if (expr) {
@@ -148,7 +152,7 @@ class Variable final : public Expr {
  public:
   Token m_name;
 
-  explicit Variable(Token name) : m_name(name) {}
+  explicit Variable(Token name) : m_name(std::move(std::move(name))) {}
 
   Object accept(IExprVisitor* visitor) const override {
     return visitor->visitVariableExpr(*this);
@@ -165,7 +169,7 @@ class Assign final : public Expr {
   std::unique_ptr<Expr> m_value;
 
   explicit Assign(Token name, std::unique_ptr<Expr> value)
-      : m_name(name), m_value(std::move(value)) {}
+      : m_name(std::move(std::move(name))), m_value(std::move(value)) {}
 
   Object accept(IExprVisitor* visitor) const override {
     return visitor->visitAssignExpr(*this);

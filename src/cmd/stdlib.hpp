@@ -8,25 +8,25 @@
 
 class LenFn : public Callable {
  public:
-  int arity() const override { return 1; }
+  [[nodiscard]] int arity() const override { return 1; }
   [[nodiscard]] std::string str() const override { return "<native fn: len>"; }
 
   Object call(std::vector<Object> args) override {
-    auto* val = std::get_if<std::string>(&args[0]);
+    auto* val = std::get_if<std::string>(args.data());
 
-    if (!val) {
+    if (val == nullptr) {
       Error::error(TokenType::IDENTIFIER, "len can only be called on a string",
-                   ErrorType::RuntimeError);
+                   ErrorType::RUNTIME_ERROR);
       return std::monostate{};
     }
 
-    return (double)val->length();
+    return static_cast<double>(val->length());
   }
 };
 
 class PrintFn : public Callable {
  public:
-  int arity() const override { return 1; }
+  [[nodiscard]] int arity() const override { return 1; }
   [[nodiscard]] std::string str() const override {
     return "<native fn: print>";
   }

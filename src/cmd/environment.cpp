@@ -1,6 +1,7 @@
 #include "environment.hpp"
 
 #include <format>
+#include <utility>
 #include <variant>
 
 #include "error.hpp"
@@ -9,25 +10,25 @@
 
 void Environment::define(const std::string& name, Object value) {
   if (m_values.contains(name))
-    if (auto ptr = std::get_if<std::shared_ptr<Callable>>(&m_values[name])) {
+    if (auto* ptr = std::get_if<std::shared_ptr<Callable>>(&m_values[name])) {
       Error::error(TokenType::IDENTIFIER,
                    std::format("Cannot assign to {} as it is a function", name),
-                   ErrorType::RuntimeError);
+                   ErrorType::RUNTIME_ERROR);
       return;
     }
 
-  m_values[name] = value;
+  m_values[name] = std::move(value);
 }
 
-Object Environment::get(Token name) {
+Object Environment::get(const Token& name) {
   if (m_values.contains(name.m_lexeme)) return m_values[name.m_lexeme];
   Error::error(name.m_type,
                std::format("Undefined variable '{}'.", name.m_lexeme),
-               ErrorType::RuntimeError);
+               ErrorType::RUNTIME_ERROR);
   return std::monostate{};
 }
 
-void Environment::assign(Token name, Object value) {
+void Environment::assign(const Token& name, Object value) {
   if (m_values.contains(name.m_lexeme)) {
     if (auto* val =
             std::get_if<std::shared_ptr<Callable>>(&m_values[name.m_lexeme]);
@@ -35,16 +36,16 @@ void Environment::assign(Token name, Object value) {
       Error::error(
           name.m_type,
           std::format("Cannot reassign {} as it is a function", name.m_lexeme),
-          ErrorType::RuntimeError);
+          ErrorType::RUNTIME_ERROR);
       return;
     }
-    m_values[name.m_lexeme] = value;
+    m_values[name.m_lexeme] = std::move(value);
     return;
   }
 
   Error::error(name.m_type,
                std::format("Undefined variable '{}'", name.m_lexeme),
-               ErrorType::RuntimeError);
+               ErrorType::RUNTIME_ERROR);
 }
 
 Environment& Environment::getInstance() {

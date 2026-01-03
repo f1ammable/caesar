@@ -13,9 +13,9 @@ class Interpreter : public IExprVisitor, IStmntVisitor {
   Error& err = Error::getInstance();
 
   Object evaluate(const std::unique_ptr<Expr>& expr);
-  bool isTruthy(const Object& object);
-  bool isEqual(const Object& lhs, const Object& rhs);
-  void checkNumberOperand(const Token& op, const Object& operand);
+  static bool isTruthy(const Object& object);
+  static bool isEqual(const Object& lhs, const Object& rhs);
+  static void checkNumberOperand(const Token& op, const Object& operand);
   Object execute(const std::unique_ptr<Stmnt>& stmnt);
 
  public:
@@ -29,7 +29,7 @@ class Interpreter : public IExprVisitor, IStmntVisitor {
   Object visitVarStmnt(const VarStmnt& stmnt) override;
   Object visitAssignExpr(const Assign& expr) override;
   Object visitCallStmnt(const CallStmnt& stmnt) override;
-  std::string stringify(const Object& object);
+  static std::string stringify(const Object& object);
 };
 
 #endif  // !INTERPRETER_HPP

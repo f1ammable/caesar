@@ -2,6 +2,7 @@
 #define STMNT_HPP
 
 #include <memory>
+#include <utility>
 
 #include "expr.hpp"
 #include "object.hpp"
@@ -30,7 +31,7 @@ class ExprStmnt final : public Stmnt {
  public:
   std::unique_ptr<Expr> m_expr;
 
-  ExprStmnt(std::unique_ptr<Expr> expr) : m_expr(std::move(expr)) {}
+  explicit ExprStmnt(std::unique_ptr<Expr> expr) : m_expr(std::move(expr)) {}
 
   Object accept(IStmntVisitor* visitor) override {
     return visitor->visitExprStmnt(*this);
@@ -56,7 +57,7 @@ class VarStmnt final : public Stmnt {
   Token m_name;
 
   VarStmnt(Token name, std::unique_ptr<Expr> expr)
-      : m_initialiser(std::move(expr)), m_name(name) {}
+      : m_initialiser(std::move(expr)), m_name(std::move(std::move(name))) {}
 
   Object accept(IStmntVisitor* visitor) override {
     return visitor->visitVarStmnt(*this);

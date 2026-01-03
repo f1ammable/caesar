@@ -2,7 +2,6 @@
 #define OBJECT_H
 
 #include <cstring>
-#include <format>
 #include <functional>
 #include <memory>
 #include <sstream>
@@ -19,10 +18,9 @@ using Object = std::variant<std::monostate, std::string, double, bool,
                             std::shared_ptr<Callable>>;
 
 template <typename Op>
-inline Object binary_operation(const Object& lhs, const Object& rhs, Op op,
-                               const std::string& op_name) {
-  auto visitor = [&op, &op_name](const auto& left,
-                                 const auto& right) -> Object {
+inline Object binaryOperation(const Object& lhs, const Object& rhs, Op op,
+                              const std::string& opName) {
+  auto visitor = [&op, &opName](const auto& left, const auto& right) -> Object {
     using L = std::decay_t<decltype(left)>;
     using R = std::decay_t<decltype(right)>;
 
@@ -33,16 +31,15 @@ inline Object binary_operation(const Object& lhs, const Object& rhs, Op op,
       if constexpr (std::is_same_v<Op, std::plus<>>) {
         return left + right;
       } else {
-        Error::error(
-            TokenType::STRING,
-            std::format("Cannot apply operator {} to strings", op_name),
-            ErrorType::RuntimeError);
+        Error::error(TokenType::STRING,
+                     std::format("Cannot apply operator {} to strings", opName),
+                     ErrorType::RUNTIME_ERROR);
         return std::monostate{};
       }
     } else {
       Error::error(TokenType::STRING,
-                   std::format("Unsupported operand types for {}", op_name),
-                   ErrorType::RuntimeError);
+                   std::format("Unsupported operand types for {}", opName),
+                   ErrorType::RUNTIME_ERROR);
       return std::monostate{};
     }
   };
@@ -51,9 +48,9 @@ inline Object binary_operation(const Object& lhs, const Object& rhs, Op op,
 }
 
 template <typename Op>
-inline bool comparison_operation(const Object& lhs, const Object& rhs, Op op,
-                                 const std::string& op_name) {
-  auto visitor = [&op, &op_name](const auto& left, const auto& right) -> bool {
+inline bool comparisonOperation(const Object& lhs, const Object& rhs, Op op,
+                                const std::string& opName) {
+  auto visitor = [&op, &opName](const auto& left, const auto& right) -> bool {
     using L = std::decay_t<decltype(left)>;
     using R = std::decay_t<decltype(right)>;
 
@@ -63,8 +60,8 @@ inline bool comparison_operation(const Object& lhs, const Object& rhs, Op op,
       Error::error(
           TokenType::STRING,
           std::format("Cannot apply operator {} to non-arithmetic types",
-                      op_name),
-          ErrorType::RuntimeError);
+                      opName),
+          ErrorType::RUNTIME_ERROR);
       return false;
     }
   };
@@ -82,22 +79,22 @@ inline Object operator+(const Object& lhs, const Object& rhs) {
       return left + right;
     }
 
-    return binary_operation(left, right, std::plus<double>{}, "+");
+    return binaryOperation(left, right, std::plus<double>{}, "+");
   };
 
   return std::visit(visitor, lhs, rhs);
 }
 
 inline Object operator-(const Object& lhs, const Object& rhs) {
-  return binary_operation(lhs, rhs, std::minus<double>{}, "-");
+  return binaryOperation(lhs, rhs, std::minus<double>{}, "-");
 }
 
 inline Object operator/(const Object& lhs, const Object& rhs) {
-  return binary_operation(lhs, rhs, std::divides<double>{}, "/");
+  return binaryOperation(lhs, rhs, std::divides<double>{}, "/");
 }
 
 inline Object operator*(const Object& lhs, const Object& rhs) {
-  return binary_operation(lhs, rhs, std::multiplies<double>{}, "*");
+  return binaryOperation(lhs, rhs, std::multiplies<double>{}, "*");
 }
 
 inline bool operator==(const Object& lhs, const Object& rhs) {
@@ -114,32 +111,32 @@ inline bool operator!=(const Object& lhs, const Object& rhs) {
 }
 
 inline bool operator<(const Object& lhs, const Object& rhs) {
-  return comparison_operation(lhs, rhs, std::less<double>{}, "<");
+  return comparisonOperation(lhs, rhs, std::less<double>{}, "<");
 }
 
 inline bool operator>(const Object& lhs, const Object& rhs) {
-  return comparison_operation(lhs, rhs, std::greater<double>{}, ">");
+  return comparisonOperation(lhs, rhs, std::greater<double>{}, ">");
 }
 
 inline bool operator<=(const Object& lhs, const Object& rhs) {
-  return comparison_operation(lhs, rhs, std::less_equal<double>{}, "<=");
+  return comparisonOperation(lhs, rhs, std::less_equal<double>{}, "<=");
 }
 
 inline bool operator>=(const Object& lhs, const Object& rhs) {
-  return comparison_operation(lhs, rhs, std::greater_equal<double>{}, ">=");
+  return comparisonOperation(lhs, rhs, std::greater_equal<double>{}, ">=");
 }
 
 namespace detail {
 template <typename T>
   requires(std::is_arithmetic_v<T>)
-[[nodiscard]] std::string to_string(const T& val, const int p = 3) {
+[[nodiscard]] std::string toString(const T& val, const int p = 3) {
   std::ostringstream out;
   out.precision(p);
   out << std::fixed << val;
   return std::move(out).str();
 }
 
-inline std::string bool_to_s(bool b) { return b ? "(true)" : "(false)"; }
+inline std::string boolToS(bool b) { return b ? "(true)" : "(false)"; }
 }  // namespace detail
 
 #endif

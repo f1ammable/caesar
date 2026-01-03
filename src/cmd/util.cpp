@@ -3,8 +3,7 @@
 #include <iostream>
 
 bool detail::isop(const char c) {
-  if (c == '+' || c == '-' || c == '*' || c == '/') return true;
-  return false;
+  return c == '+' || c == '-' || c == '*' || c == '/';
 }
 
 TokenType detail::ctoop(const char c) {
@@ -24,8 +23,8 @@ TokenType detail::ctoop(const char c) {
 
 double detail::parseNumber(const std::string& str) {
   try {
-    size_t pos = 0;
-    int val = std::stoi(str, &pos);
+    size_t pos = 0;  // NOLINT(misc-const-correctness)
+    const int val = std::stoi(str, &pos);
     if (pos == str.length() && str.find('.') == std::string::npos) {
       return val;
     }
@@ -34,13 +33,13 @@ double detail::parseNumber(const std::string& str) {
   }
 
   try {
-    float f_val = std::stof(str);
-    double d_val = std::stod(str);
+    const float fVal = std::stof(str);
+    const double dVal = std::stod(str);
 
-    if (std::abs(f_val - d_val) < 1e-16) {
-      return f_val;
+    if (std::abs(fVal - dVal) < 1e-16) {
+      return fVal;
     }
-    return d_val;
+    return dVal;
   } catch (...) {
     throw std::invalid_argument(
         std::format("Cannot parse {} as number\n", str));
