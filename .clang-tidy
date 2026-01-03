@@ -1,0 +1,89 @@
+Checks: >
+ -*,
+ bugprone-*,
+ -bugprone-easily-swappable-parameters,
+ -bugprone-exception-escape,
+ cert-*,
+ -cert-err58-cpp,
+ clang-analyzer-*,
+ concurrency-*,
+ cppcoreguidelines-*,
+ -cppcoreguidelines-avoid-magic-numbers,
+ -cppcoreguidelines-avoid-const-or-ref-data-members,
+ -cppcoreguidelines-pro-bounds-array-to-pointer-decay,
+ -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+ -cppcoreguidelines-pro-type-reinterpret-cast,
+ -cppcoreguidelines-pro-type-vararg,
+ -cppcoreguidelines-owning-memory,
+ -cppcoreguidelines-avoid-do-while,
+ google-*,
+ -google-readability-todo,
+ -google-runtime-references,
+ misc-*,
+ -misc-non-private-member-variables-in-classes,
+ -misc-no-recursion,
+ modernize-*,
+ -modernize-use-trailing-return-type,
+ -modernize-avoid-c-arrays,
+ performance-*,
+ readability-*,
+ -readability-identifier-length,
+ -readability-magic-numbers,
+ -readability-function-cognitive-complexity,
+ -readability-uppercase-literal-suffix,
+ -readability-else-after-return,
+
+WarningsAsErrors: ''
+
+CheckOptions:
+ # Naming conventions
+ - key: readability-identifier-naming.NamespaceCase
+   value: lower_case
+ - key: readability-identifier-naming.ClassCase
+   value: CamelCase
+ - key: readability-identifier-naming.StructCase
+   value: CamelCase
+ - key: readability-identifier-naming.EnumCase
+   value: CamelCase
+ - key: readability-identifier-naming.FunctionCase
+   value: camelBack
+ - key: readability-identifier-naming.VariableCase
+   value: camelBack
+ - key: readability-identifier-naming.ParameterCase
+   value: camelBack
+ - key: readability-identifier-naming.MemberCase
+   value: lower_case
+ - key: readability-identifier-naming.MemberCase.Prefix
+   value: m_
+ - key: readability-identifier-naming.ConstantMemberCase
+   value: camelBack
+ - key: readability-identifier-naming.ConstantMemberPrefix
+   value: m_
+ - key: readability-identifier-naming.ConstantCase
+   value: camelBack
+ - key: readability-identifier-naming.EnumConstantCase
+   value: UPPER_CASE
+ - key: readability-identifier-naming.GlobalConstantCase
+   value: UPPER_CASE
+ - key: readability-identifier-naming.StaticConstantCase
+   value: CamelCase
+
+ # Line length
+ - key: readability-function-size.LineThreshold
+   value: 200
+ - key: readability-function-size.StatementThreshold
+   value: 200
+
+ # Misc settings
+ - key: modernize-use-nullptr.NullMacros
+   value: 'NULL'
+ - key: performance-move-const-arg.CheckTriviallyCopyableMove
+   value: true
+ - key: cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+   value: true
+
+# Exclude third-party code and build artifacts
+HeaderFilterRegex: '^.*/(src|test)/.*\.(h|hpp)$'
+
+# Suppress warnings from system headers
+SystemHeaders: false
