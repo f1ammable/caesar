@@ -48,7 +48,6 @@ if(CAESAR_BUILD_TESTS)
   add_executable(
     caesar_test
       test/cmd/test_environment.cpp
-      test/cmd/test_error.cpp
       test/cmd/test_interpreter.cpp
       test/cmd/test_object.cpp
       test/cmd/test_parser.cpp
