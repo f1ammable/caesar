@@ -117,6 +117,9 @@ jobs:
           name: build-artifacts
           path: build
 
+      - name: Restore executable permissions
+        run: chmod +x build/caesar_test
+
       - name: Run tests and generate coverage
         run: .github/scripts/generate-coverage.sh
 
