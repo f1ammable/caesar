@@ -66,6 +66,7 @@ struct formatter<TokenType> {
   static auto format(const TokenType& t, format_context& ctx) {
     const auto str = [] {
       map<TokenType, string> res;
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSERT_ELEM(p) res.emplace(p, #p);
       INSERT_ELEM(TokenType::LEFT_PAREN);
       INSERT_ELEM(TokenType::RIGHT_PAREN);
