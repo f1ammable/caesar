@@ -24,6 +24,6 @@ echo "Running clang-tidy..."
 
 # Run clang-tidy on changed files
 # shellcheck disable=SC2086
-clang-tidy -p build $EXISTING_FILES
+clang-tidy -p build --warnings-as-errors='*' $EXISTING_FILES
 
 echo "clang-tidy completed successfully"
