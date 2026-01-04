@@ -85,7 +85,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-          path: .
+          path: build
 
       - name: Check formatting on changed files
         run: .github/scripts/check-format.sh
@@ -115,7 +115,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: build-artifacts
-          path: .
+          path: build
 
       - name: Run tests and generate coverage
         run: .github/scripts/generate-coverage.sh
