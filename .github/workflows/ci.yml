@@ -47,8 +47,8 @@ jobs:
       - name: Configure CMake
         run: cmake -B build --preset debug -DENABLE_COVERAGE=ON
         env:
-          CC: clang
-          CXX: clang++
+          CC: /usr/bin/clang-21
+          CXX: /usr/bin/clang++-21
           CMAKE_CXX_COMPILER_LAUNCHER: ccache
 
       - name: Build
