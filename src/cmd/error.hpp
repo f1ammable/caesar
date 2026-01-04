@@ -31,6 +31,7 @@ struct std::formatter<ErrorType> : std::formatter<std::string_view> {
   constexpr auto format(ErrorType type, auto& ctx) const {
     const auto str = [] {
       std::map<ErrorType, std::string> res;
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSERT_ELEM(p) res.emplace(p, #p);
       INSERT_ELEM(ErrorType::PARSE_ERROR);
       INSERT_ELEM(ErrorType::SCAN_ERROR);
