@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31.0)
+cmake_minimum_required(VERSION 3.28.0)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -56,6 +56,12 @@ if(CAESAR_BUILD_TESTS)
   )
 
   target_link_libraries(caesar_test PRIVATE caesar_cmd caesar_core Catch2::Catch2WithMain)
+
+  # Apply coverage flags to test executable if coverage is enabled
+  if(ENABLE_COVERAGE)
+    target_compile_options(caesar_test PUBLIC ${COVERAGE_COMPILE_FLAGS})
+    target_link_options(caesar_test PUBLIC ${COVERAGE_LINK_FLAGS})
+  endif()
 
   include(CTest)
   include(Catch)

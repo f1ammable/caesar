@@ -19,7 +19,7 @@ class Callable {
 
 template <typename T>
   requires std::derived_from<T, Callable>
-struct std::formatter<T> {
+struct std::formatter<T> {  // NOLINT(cert-dcl58-cpp)
   constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
   auto format(const T& fn, std::format_context& ctx) const {

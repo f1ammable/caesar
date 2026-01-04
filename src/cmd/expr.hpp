@@ -41,7 +41,7 @@ class Expr {
 };
 
 template <>
-struct std::formatter<Expr> {
+struct std::formatter<Expr> {  // NOLINT(cert-dcl58-cpp)
   static constexpr auto parse(std::format_parse_context& ctx) {
     return ctx.begin();
   }
@@ -52,7 +52,7 @@ struct std::formatter<Expr> {
 };
 
 template <>
-struct std::formatter<Expr*> {
+struct std::formatter<Expr*> {  // NOLINT(cert-dcl58-cpp)
   static constexpr auto parse(std::format_parse_context& ctx) {
     return ctx.begin();
   }
@@ -66,6 +66,7 @@ struct std::formatter<Expr*> {
 };
 
 template <>
+// NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::formatter<std::unique_ptr<Expr>> : public std::formatter<Expr*> {
   auto format(const std::unique_ptr<Expr>& expr,
               std::format_context& ctx) const {
@@ -75,6 +76,7 @@ struct std::formatter<std::unique_ptr<Expr>> : public std::formatter<Expr*> {
 
 template <typename T>
   requires std::derived_from<T, Expr> && (!std::same_as<T, Expr>)
+// NOLINTNEXTLINE(cert-dcl58-cpp)
 struct std::formatter<T> : std::formatter<Expr> {
   auto format(const T& expr, std::format_context& ctx) const {
     return std::formatter<Expr>::format(static_cast<const Expr&>(expr), ctx);
