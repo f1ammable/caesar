@@ -14,6 +14,7 @@
 
 namespace std {
 template <>
+// NOLINTNEXTLINE(cert-dcl58-cpp)
 struct formatter<Object> {
   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
@@ -48,6 +49,7 @@ struct formatter<Object> {
 };
 
 template <>
+// NOLINTNEXTLINE(cert-dcl58-cpp)
 struct formatter<Token> {
   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
@@ -57,6 +59,7 @@ struct formatter<Token> {
 };
 
 template <>
+// NOLINTNEXTLINE(cert-dcl58-cpp)
 struct formatter<TokenType> {
   static constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
