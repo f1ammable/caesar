@@ -14,16 +14,16 @@ if ! ls caesar-*.profraw 1> /dev/null 2>&1; then
 fi
 
 echo "Merging profile data..."
-llvm-profdata merge -sparse caesar-*.profraw -o caesar.profdata
+/usr/bin/llvm-profdata-21 merge -sparse caesar-*.profraw -o caesar.profdata
 
 echo "Generating coverage report (text summary)..."
-llvm-cov report ./caesar_test \
+/usr/bin/llvm-cov-21 report ./caesar_test \
   -instr-profile=caesar.profdata \
   -ignore-filename-regex='test/.*' \
   -ignore-filename-regex='.*/Catch2/.*'
 
 echo "Generating detailed HTML report..."
-llvm-cov show ./caesar_test \
+/usr/bin/llvm-cov-21 show ./caesar_test \
   -instr-profile=caesar.profdata \
   -format=html \
   -output-dir=coverage-report \
@@ -34,7 +34,7 @@ llvm-cov show ./caesar_test \
 
 echo "Generating per-file coverage summary..."
 echo "### Per-File Coverage Summary" > coverage-summary.txt
-llvm-cov report ./caesar_test \
+/usr/bin/llvm-cov-21 report ./caesar_test \
   -instr-profile=caesar.profdata \
   -ignore-filename-regex='test/.*' \
   -ignore-filename-regex='.*/Catch2/.*' \
