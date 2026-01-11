@@ -52,3 +52,5 @@ Environment& Environment::getInstance() {
   static Environment instance;
   return instance;
 }
+
+std::map<std::string, Object> Environment::getAll() { return m_values; }
