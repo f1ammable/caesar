@@ -1,7 +1,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
-#include "token.hpp"
+#include <string>
+#include "token_type.hpp"
 
 namespace detail {
 bool isop(char c);

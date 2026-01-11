@@ -121,6 +121,12 @@ Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
   argList.reserve(stmnt.m_args.size());
 
   for (const auto& x : stmnt.m_args) {
+    if (auto* id = dynamic_cast<Variable*>(x.get());
+        id != nullptr && !(m_env.getAll().contains(id->m_name.m_lexeme))) {
+      argList.emplace_back(id->m_name.m_lexeme);
+      continue;
+    }
+
     argList.emplace_back(std::move(evaluate(x)));
   }
 

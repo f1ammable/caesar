@@ -8,6 +8,8 @@
 #include "stdlib.hpp"
 #include "token.hpp"
 
+class Interpreter;
+
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class Environment {
  private:
@@ -15,11 +17,13 @@ class Environment {
   Environment() : m_values({}) {
     this->define("print", std::make_shared<PrintFn>(PrintFn()));
     this->define("len", std::make_shared<LenFn>(LenFn()));
+    this->define("breakpoint", std::make_shared<BreakpointFn>(BreakpointFn()));
   }
 
  public:
   void define(const std::string& name, Object value);
   Object get(const Token& name);
+  std::map<std::string, Object> getAll();
   void assign(const Token& name, Object value);
 
   Environment(Environment& other) = delete;
