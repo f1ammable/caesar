@@ -4,6 +4,44 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# OPTIONAL: Use ccache if present
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+  set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+  message(STATUS "ccache found: ${CCACHE_PROGRAM}")
+else()
+  message(WARNING "ccache not found - builds will be slower. Install with: brew install ccache")
+endif()
+
+# Only brew LLVM is supported on OSX at the moment
+if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+  # Find brew
+  find_program(BREW_PROGRAM brew)
+  if(BREW_PROGRAM)
+    message(FATAL_ERROR "Homebrew not found! Install from https://brew.sh")
+  endif()
+
+  # Find LLVM
+  execute_process(COMMAND brew --prefix llvm OUTPUT_VARIABLE LLVM_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE RESULT_VARIABLE BREW_LLVM_RESULT ERROR_QUIET)
+  if(NOT BREW_LLVM_RESULT EQUAL 0)
+    message(FATAL_ERROR "Brew LLVM not found! Install with: brew install llvm")
+  endif()
+
+  # Use brew LLVM clang
+  set(CMAKE_C_COMPILER "${LLVM_PREFIX}/bin/clang")
+  set(CMAKE_CXX_COMPILER "${LLVM_PREFIX}/bin/clang++")
+
+  # Link with brew LLVM libc++
+  execute_process(COMMAND brew --prefix llvm OUTPUT_VARIABLE LLVM_PREFIX OUTPUT_STRIP_TRAILING_WHITESPACE)
+  add_compile_options(-stdlib=libc++)
+  add_link_options(-stdlib=libc++ -L${LLVM_PREFIX}/lib/c++ -Wl,-rpath,${LLVM_PREFIX}/lib/c++)
+
+  # Set OSX SDK
+  execute_process(COMMAND xcrun --sdk macosx --show-sdk-path OUTPUT_VARIABLE OSX_SYSROOT OUTPUT_STRIP_TRAILING_WHITESPACE)
+  set(CMAKE_OSX_SYSROOT "${OSX_SYSROOT}")
+endif()
+
 project(caesar VERSION 0.1.0)
 
 # Optional: Enable code coverage
