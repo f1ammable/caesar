@@ -1,10 +1,8 @@
 #include <cstdlib>
-#include <exception>
+#include <filesystem>
 #include <format>
-#include <fstream>
 #include <iostream>
 #include <memory>
-#include <sstream>
 #include <string>
 #include <variant>
 #include <vector>
@@ -14,12 +12,16 @@
 #include "cmd/parser.hpp"
 #include "cmd/scanner.hpp"
 #include "cmd/token.hpp"
+#include "context.hpp"
 #include "object.hpp"
 #include "stmnt.hpp"
+#include "core/target.hpp"
 
 namespace {
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 Error& e = Error::getInstance();
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+Context& ctx = Context::getInstance();
 
 void run(const std::string& src) {
   auto s = Scanner(src);
@@ -44,16 +46,6 @@ void run(const std::string& src) {
   }
 }
 
-void runFile(const std::string& path) {
-  std::ifstream const file(path);
-  std::stringstream buffer;
-  buffer << file.rdbuf();
-  run(buffer.str());
-  if (e.had_error) {
-    exit(65);  // NOLINT(concurrency-mt-unsafe)
-  }
-}
-
 void runPrompt() {
   std::string line;
 
@@ -72,23 +64,32 @@ void runPrompt() {
   }
   std::cout << '\n';
 }
+
+void runFile(const std::string& filePath) {
+  if (!std::filesystem::exists(filePath)) {
+    std::cout << "Target does not exist!\n";
+    runPrompt();
+  } else {
+    ctx.m_loaded_file = std::filesystem::path(filePath).string();
+    if (Target::isFileValid(filePath))
+      std::cout << std::format("Target set to {}\n", ctx.m_loaded_file);
+    else
+      // TODO: Add Mach-O FAT binary magic to Target::isFileValid
+      std::cout << "Target is valid but cannot be ran on current platform!\n";
+    runPrompt();
+  }
+}
 }  // namespace
 
 int main(int argc, char** argv) {
-  try {
-    if (argc > 2) {
-      std::cout << std::format("Usage: {} [script]\n", argv[0]);
-      return 64;
-    } else if (argc == 2) {
-      runFile(argv[1]);
-    } else {
-      runPrompt();
-    }
-  } catch (const std::exception& e) {
-    std::cerr << std::format("Exception: {}\n", e.what());
-    return 1;
+  if (argc > 2) {
+    std::cout << std::format("Usage: {} [script]\n", argv[0]);
+    return 64;
+  } else if (argc == 2) {
+    runFile(argv[1]);
+  } else {
+    runPrompt();
   }
-
   return 0;
 }
 

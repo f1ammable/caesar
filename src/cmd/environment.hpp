@@ -8,8 +8,6 @@
 #include "stdlib.hpp"
 #include "token.hpp"
 
-class Interpreter;
-
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class Environment {
  private:

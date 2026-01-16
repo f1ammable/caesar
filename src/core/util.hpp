@@ -3,6 +3,7 @@
 
 #include <mach-o/loader.h>
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 
@@ -12,11 +13,11 @@ struct SwapDescriptor {
     static_assert(sizeof(T) % sizeof(uint32_t) == 0,
                   "Struct size must be multiple of 4 bytes");
 
-    uint32_t* fields = reinterpret_cast<uint32_t*>(ptr);
-    constexpr size_t num_fields = sizeof(T) / sizeof(uint32_t);
+    auto* fields = reinterpret_cast<uint32_t*>(ptr);
+    constexpr size_t numFields = sizeof(T) / sizeof(uint32_t);
 
     // TODO: Compiler builtin, make this more platform agnostic
-    for (size_t i = 0; i < num_fields; i++) {
+    for (size_t i = 0; i < numFields; i++) {
       fields[i] = __builtin_bswap32(fields[i]);
     }
   }
@@ -33,26 +34,46 @@ struct SwapDescriptor<segment_command_64> {
   static void swap(segment_command_64* segment) {
     char* base = reinterpret_cast<char*>(segment);
 
-    constexpr FieldInfo fields[] = {
-        {offsetof(segment_command_64, cmd), 4, true},
-        {offsetof(segment_command_64, cmdsize), 4, true},
-        {offsetof(segment_command_64, segname), 16, false},  // Skip char array
-        {offsetof(segment_command_64, vmaddr), 8, true},
-        {offsetof(segment_command_64, vmsize), 8, true},
-        {offsetof(segment_command_64, fileoff), 8, true},
-        {offsetof(segment_command_64, filesize), 8, true},
-        {offsetof(segment_command_64, maxprot), 4, true},
-        {offsetof(segment_command_64, initprot), 4, true},
-        {offsetof(segment_command_64, nsects), 4, true},
-        {offsetof(segment_command_64, flags), 4, true}};
+    constexpr std::array<FieldInfo, 11> fields = {
+        {{.offset = offsetof(segment_command_64, cmd), .size = 4, .swap = true},
+         {.offset = offsetof(segment_command_64, cmdsize),
+          .size = 4,
+          .swap = true},
+         {.offset = offsetof(segment_command_64, segname),
+          .size = 16,
+          .swap = false},  // Skip char array
+         {.offset = offsetof(segment_command_64, vmaddr),
+          .size = 8,
+          .swap = true},
+         {.offset = offsetof(segment_command_64, vmsize),
+          .size = 8,
+          .swap = true},
+         {.offset = offsetof(segment_command_64, fileoff),
+          .size = 8,
+          .swap = true},
+         {.offset = offsetof(segment_command_64, filesize),
+          .size = 8,
+          .swap = true},
+         {.offset = offsetof(segment_command_64, maxprot),
+          .size = 4,
+          .swap = true},
+         {.offset = offsetof(segment_command_64, initprot),
+          .size = 4,
+          .swap = true},
+         {.offset = offsetof(segment_command_64, nsects),
+          .size = 4,
+          .swap = true},
+         {.offset = offsetof(segment_command_64, flags),
+          .size = 4,
+          .swap = true}}};
 
     for (const auto& f : fields) {
       if (f.swap) {
         if (f.size == 4) {
-          uint32_t* ptr = reinterpret_cast<uint32_t*>(base + f.offset);
+          auto* ptr = reinterpret_cast<uint32_t*>(base + f.offset);
           *ptr = __builtin_bswap32(*ptr);
         } else if (f.size == 8) {
-          uint64_t* ptr = reinterpret_cast<uint64_t*>(base + f.offset);
+          auto* ptr = reinterpret_cast<uint64_t*>(base + f.offset);
           *ptr = __builtin_bswap64(*ptr);
         }
       }
@@ -65,26 +86,27 @@ struct SwapDescriptor<section_64> {
   static void swap(section_64* section) {
     char* base = reinterpret_cast<char*>(section);
 
-    constexpr FieldInfo fields[] = {{offsetof(section_64, sectname), 16, false},
-                                    {offsetof(section_64, segname), 16, false},
-                                    {offsetof(section_64, addr), 8, true},
-                                    {offsetof(section_64, size), 8, true},
-                                    {offsetof(section_64, offset), 4, true},
-                                    {offsetof(section_64, align), 4, true},
-                                    {offsetof(section_64, reloff), 4, true},
-                                    {offsetof(section_64, nreloc), 4, true},
-                                    {offsetof(section_64, flags), 4, true},
-                                    {offsetof(section_64, reserved1), 4, true},
-                                    {offsetof(section_64, reserved2), 4, true},
-                                    {offsetof(section_64, reserved3), 4, true}};
+    constexpr std::array<FieldInfo, 12> fields = {
+        {{.offset = offsetof(section_64, sectname), .size = 16, .swap = false},
+         {.offset = offsetof(section_64, segname), .size = 16, .swap = false},
+         {.offset = offsetof(section_64, addr), .size = 8, .swap = true},
+         {.offset = offsetof(section_64, size), .size = 8, .swap = true},
+         {.offset = offsetof(section_64, offset), .size = 4, .swap = true},
+         {.offset = offsetof(section_64, align), .size = 4, .swap = true},
+         {.offset = offsetof(section_64, reloff), .size = 4, .swap = true},
+         {.offset = offsetof(section_64, nreloc), .size = 4, .swap = true},
+         {.offset = offsetof(section_64, flags), .size = 4, .swap = true},
+         {.offset = offsetof(section_64, reserved1), .size = 4, .swap = true},
+         {.offset = offsetof(section_64, reserved2), .size = 4, .swap = true},
+         {.offset = offsetof(section_64, reserved3), .size = 4, .swap = true}}};
 
     for (const auto& f : fields) {
       if (f.swap) {
         if (f.size == 4) {
-          uint32_t* ptr = reinterpret_cast<uint32_t*>(base + f.offset);
+          auto* ptr = reinterpret_cast<uint32_t*>(base + f.offset);
           *ptr = __builtin_bswap32(*ptr);
         } else if (f.size == 8) {
-          uint64_t* ptr = reinterpret_cast<uint64_t*>(base + f.offset);
+          auto* ptr = reinterpret_cast<uint64_t*>(base + f.offset);
           *ptr = __builtin_bswap64(*ptr);
         }
       }
