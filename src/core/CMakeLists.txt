@@ -3,6 +3,9 @@ add_library(caesar_core STATIC
     dwarf/context.cpp
     dwarf/context.hpp
     dwarf/alloc.hpp
+        context.cpp
+        context.hpp
+        target.hpp
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")

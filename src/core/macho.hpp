@@ -9,45 +9,46 @@
 #include <string>
 
 #include "util.hpp"
+#include "target.hpp"
 
-struct _cpu_type_names {
+struct CpuTypeNames {
   cpu_type_t cpu_type;
-  std::string cpu_name;
+  const char* cpu_name;
 };
 
-class Macho {
+class Macho : public Target {
  public:
-  explicit Macho(std::ifstream& f);
-  void dump();
+  explicit Macho(std::ifstream f);
+  void dump() override;
 
  private:
-  uint32_t magic;
-  bool is_64;
-  bool is_swap;
-  std::ifstream& file;
+  uint32_t m_magic = 0;
+  bool m_is_64 = false;
+  bool m_is_swap = false;
 
-  void read_magic(int offset);
-  void is_magic_64();
-  void maybe_swap_bytes();
+  void readMagic() override;
+  void is64() override;
+  void maybeSwapBytes();
 
   template <typename T>
-  std::unique_ptr<T> load_bytes_and_maybe_swap(int offset) {
-    auto buf = std::make_unique<T>();
-    this->file.seekg(offset, std::ios::beg);
-    this->file.read(std::bit_cast<char*>(buf.get()), sizeof(T));
-    if (this->is_swap) SwapDescriptor<T>::swap(buf.get());
+  T loadBytesAndMaybeSwap(uint32_t offset) {
+    T buf;
+    m_file->seekg(offset, std::ios::beg);
+    m_file->read(std::bit_cast<char*>(&buf), sizeof(T));
+    if (m_is_swap) SwapDescriptor<T>::swap(&buf);
     return buf;
   }
 
-  void dump_mach_header(int offset);
-  void dump_segment_commands(int offset, uint32_t ncmds);
-  static constexpr _cpu_type_names cpu_type_names[] = {
-      {CPU_TYPE_I386, "i386"},
-      {CPU_TYPE_X86_64, "x86_64"},
-      {CPU_TYPE_ARM, "arm"},
-      {CPU_TYPE_ARM64, "arm64"}};
-  std::string cpu_type_name(cpu_type_t cpu_type);
-  void dump_sections(int offset, int end);
+  void dumpMachHeader(int offset);
+  void dumpSegmentCommands(int offset, uint32_t ncmds);
+
+  static constexpr std::array<CpuTypeNames, 4> CPU_TYPE_NAMES = {
+      {{.cpu_type = CPU_TYPE_I386, .cpu_name = "i386"},
+       {.cpu_type = CPU_TYPE_X86_64, .cpu_name = "x86_64"},
+       {.cpu_type = CPU_TYPE_ARM, .cpu_name = "arm"},
+       {.cpu_type = CPU_TYPE_ARM64, .cpu_name = "arm64"}}};
+  static std::string cpuTypeName(cpu_type_t cpuType);
+  void dumpSections(uint32_t offset, uint32_t end);
 };
 
 #endif  // CAESAR_MACHO_HPP
