@@ -3,7 +3,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <variant>
 
-#include "object.hpp"
+#include <cmd/object.hpp>
 #include "test_helpers.hpp"
 
 // This whole file is ugly but it works and I can't find it a better way to do

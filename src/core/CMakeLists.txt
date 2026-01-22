@@ -3,7 +3,6 @@ add_library(caesar_core STATIC
     dwarf/context.cpp
     dwarf/context.hpp
     dwarf/alloc.hpp
-        context.cpp
         context.hpp
         target.hpp
 )
@@ -16,7 +15,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 target_include_directories(caesar_core PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
 )
 
 find_package(libdwarf CONFIG REQUIRED)

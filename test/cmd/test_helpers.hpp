@@ -2,6 +2,11 @@
 #define CAESAR_TEST_HELPERS_HPP
 
 #include <catch2/catch_test_macros.hpp>
+#include <cmd/expr.hpp>
+#include <cmd/parser.hpp>
+#include <cmd/scanner.hpp>
+#include <cmd/stmnt.hpp>
+#include <cmd/token.hpp>
 #include <concepts>
 #include <cstddef>
 #include <iostream>
@@ -9,11 +14,6 @@
 #include <variant>
 #include <vector>
 
-#include "expr.hpp"
-#include "parser.hpp"
-#include "scanner.hpp"
-#include "stmnt.hpp"
-#include "token.hpp"
 namespace helpers {
 // Pass here expected amount of tokens WITHOUT end token
 inline bool checkTokensSize(const size_t actual, const size_t expected) {
