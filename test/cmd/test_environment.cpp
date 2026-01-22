@@ -1,10 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <cmd/environment.hpp>
+#include <cmd/object.hpp>
 #include <format>
 #include <variant>
 
-#include "environment.hpp"
-#include "object.hpp"
 #include "test_helpers.hpp"
 
 TEST_CASE("Test environment singleton pattern", "[environment][singleton]") {

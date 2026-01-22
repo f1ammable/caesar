@@ -1,14 +1,14 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <cmd/expr.hpp>
+#include <cmd/object.hpp>
+#include <cmd/stmnt.hpp>
+#include <cmd/token.hpp>
 #include <cstddef>
 #include <memory>
 #include <variant>
 
-#include "expr.hpp"
-#include "object.hpp"
-#include "stmnt.hpp"
 #include "test_helpers.hpp"
-#include "token.hpp"
 
 TEST_CASE("Test literal parsing", "[parser][expression][literal]") {
   auto [input, expected_value] =

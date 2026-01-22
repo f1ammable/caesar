@@ -21,5 +21,5 @@ add_library(caesar_cmd STATIC
 )
 
 target_include_directories(caesar_cmd PUBLIC
-    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}/..
 )

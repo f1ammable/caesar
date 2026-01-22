@@ -1,10 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <cmd/interpreter.hpp>
+#include <cmd/object.hpp>
 #include <memory>
 #include <variant>
 
-#include "interpreter.hpp"
-#include "object.hpp"
 #include "test_helpers.hpp"
 
 TEST_CASE("Test truthy behavior through bang operator",
