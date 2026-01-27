@@ -1,12 +1,14 @@
 #ifndef STDLIB_H
 #define STDLIB_H
 
-#include <cstdint>
+#include <core/context.hpp>
+#include <core/util.hpp>
+#include <iostream>
+#include <string>
 #include <variant>
 
 #include "callable.hpp"
 #include "error.hpp"
-#include "formatter.hpp"
 #include "subcommand.hpp"
 #include "token_type.hpp"
 
@@ -35,9 +37,7 @@ class PrintFn : public Callable {
     return "<native fn: print>";
   }
 
-  Object call(std::vector<Object> args) override {
-    return std::format("{}", args[0]);
-  }
+  Object call(std::vector<Object> args) override { return args[0]; }
 };
 
 class BreakpointFn : public Callable {
@@ -81,6 +81,64 @@ class BreakpointFn : public Callable {
     const std::string subcmd = convertedArgs.front();
     convertedArgs.erase(convertedArgs.begin());
     return m_subcmds.exec(subcmd, convertedArgs);
+  }
+};
+
+class RunFn : public Callable {
+ private:
+  static CStringArray concatElems(const std::vector<Object>& v) {
+    auto ensureStr = [](const auto& obj) -> std::string {
+      using T = std::decay_t<decltype(obj)>;
+
+      if constexpr (std::is_same_v<T, double>)
+        return std::to_string(obj);
+      else if constexpr (std::is_same_v<T, std::string>)
+        return obj;
+      else if constexpr (std::is_same_v<T, bool>)
+        return obj ? "true" : "false";
+      else
+        return "";
+    };
+
+    CStringArray res{};
+    res.storage.reserve(v.size());
+    res.ptrs.reserve(v.size() + 1);
+
+    for (const auto& x : v) {
+      std::string temp = std::visit(ensureStr, x);
+      if (temp.empty()) {
+        Error::error(
+            TokenType::IDENTIFIER,
+            "Only strings, bools and numbers are supported as arguments",
+            ErrorType::RUNTIME_ERROR);
+        break;
+      }
+
+      res.storage.emplace_back(temp.begin(), temp.end());
+      res.storage.back().push_back('\0');
+      res.ptrs.push_back(res.storage.back().data());
+    }
+    res.ptrs.push_back(nullptr);
+    return res;
+  };
+
+ public:
+  // TODO: Allow for inline target args (just one string containing all args)
+  [[nodiscard]] int arity() const override { return 0; }
+  [[nodiscard]] std::string str() const override { return "<native fn: run>"; }
+
+  Object call(std::vector<Object> args) override {
+    CStringArray argList = RunFn::concatElems(args);
+    auto& target = Context::getInstance().getTarget();
+    if (target == nullptr) {
+      std::cerr << "Error: Target is not set!\n";
+      Error::getInstance().had_error = true;
+      return std::monostate{};
+    }
+
+    i32 pid = target->launch(argList);
+    if (pid >= 0) return std::format("Target started with pid {}\n", pid);
+    return "Unable to start target (are you running with sudo?)\n";
   }
 };
 

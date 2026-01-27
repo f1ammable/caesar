@@ -8,8 +8,8 @@
 #include <fstream>
 #include <string>
 
-#include "util.hpp"
 #include "target.hpp"
+#include "util.hpp"
 
 struct CpuTypeNames {
   cpu_type_t cpu_type;
@@ -18,8 +18,11 @@ struct CpuTypeNames {
 
 class Macho : public Target {
  public:
-  explicit Macho(std::ifstream f);
+  explicit Macho(std::ifstream f, std::string filePath);
   void dump() override;
+  i32 attach(u32 pid) override;
+  void setBreakpoint(u32 addr) override;
+  i32 launch(CStringArray& argList) override;
 
  private:
   uint32_t m_magic = 0;

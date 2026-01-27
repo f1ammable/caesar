@@ -5,28 +5,39 @@
 #include <cstddef>
 #include <fstream>
 #include <memory>
-#include <unordered_map>
 
-#include "context.hpp"
+#include "typedefs.hpp"
+#include "util.hpp"
+
+enum class TargetState : std::uint8_t { STOPPED, RUNNING };
+enum class BinaryType : std::uint8_t { MACHO, ELF, PE };
+enum class TargetError : std::uint8_t { FORK_FAIL };
 
 class Target {
- protected:
-  explicit Target(std::ifstream f)
-      : m_file(std::make_unique<std::ifstream>(std::move(f))) {}
-  virtual void readMagic() = 0;
-  virtual void is64() = 0;
-  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
-  std::unique_ptr<std::ifstream> m_file;
-
+ private:
   using MagicBytes = std::array<std::byte, 4>;
-  using u32 = std::uint32_t;
-
   static consteval u32 byteArrayToInt(const MagicBytes& bytes) {
     return (std::to_integer<u32>(bytes[3]) << 24) |
            (std::to_integer<u32>(bytes[2]) << 16) |
            (std::to_integer<u32>(bytes[1]) << 8) |
            (std::to_integer<u32>(bytes[0]));
   }
+
+ protected:
+  explicit Target(std::ifstream f, std::string filePath)
+      : m_file(std::make_unique<std::ifstream>(std::move(f))),
+        m_file_path(std::move(filePath)) {}
+  virtual void readMagic() = 0;
+  virtual void is64() = 0;
+
+  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
+  std::unique_ptr<std::ifstream> m_file;
+  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
+  TargetState m_state = TargetState::STOPPED;
+  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
+  int32_t m_pid = 0;
+  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
+  std::string m_file_path;
 
  public:
   virtual ~Target() = default;
@@ -56,8 +67,13 @@ class Target {
     // Unsupported file
     if (!magics.contains(magicRead)) return false;
 
-    return magics.at(magicRead) == Context::getPlatform();
+    return magics.at(magicRead) == getPlatform();
   }
+
+  void setTargetState(TargetState s) { m_state = s; }
+  virtual i32 attach(u32 pid) = 0;
+  virtual void setBreakpoint(u32 addr) = 0;
+  virtual i32 launch(CStringArray& argList) = 0;
 };
 
 #endif

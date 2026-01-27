@@ -2,6 +2,7 @@
 #define UTIL_H
 
 #include <string>
+
 #include "token_type.hpp"
 
 namespace detail {

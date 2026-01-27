@@ -13,9 +13,9 @@ class Scanner {
   std::vector<Token> m_tokens;
   int m_start = 0;
   int m_current = 0;
-  std::map<std::string, TokenType> m_keywords = {{"false", TokenType::FALSE},
+  std::map<std::string, TokenType> m_keywords = {{"false", TokenType::BOOL_FALSE},
                                                  {"nil", TokenType::NIL},
-                                                 {"true", TokenType::TRUE},
+                                                 {"true", TokenType::BOOL_TRUE},
                                                  {"var", TokenType::VAR}};
 
   [[nodiscard]] bool isAtEnd() const;

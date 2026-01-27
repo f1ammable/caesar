@@ -22,8 +22,8 @@ enum class TokenType : std::uint8_t {
   STRING,
   NUMBER,
   NIL,
-  TRUE,
-  FALSE,
+  BOOL_TRUE,
+  BOOL_FALSE,
   VAR,
   END,
 };
