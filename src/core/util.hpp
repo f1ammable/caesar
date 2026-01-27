@@ -6,6 +6,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <vector>
 
 template <typename T>
 struct SwapDescriptor {
@@ -22,6 +23,8 @@ struct SwapDescriptor {
     }
   }
 };
+
+#ifdef __APPLE__
 
 struct FieldInfo {
   size_t offset;
@@ -111,6 +114,44 @@ struct SwapDescriptor<section_64> {
         }
       }
     }
+  }
+};
+
+#endif
+
+enum class PlatformType : std::uint8_t { MACH, LINUX, WIN, UNSUPPORTED };
+consteval static PlatformType getPlatform() {
+  PlatformType t = PlatformType::UNSUPPORTED;
+#if defined(__APPLE__)
+  t = PlatformType::MACH;
+#elif defined(__linux__)
+  t = PlatformType::LINUX;
+#elif defined(_WIN32)
+  t = PlatformType::LINUX;
+#endif
+  return t;
+}
+
+struct CStringArray {
+  std::vector<std::vector<char>> storage;
+  std::vector<char*> ptrs;
+
+  char** data() { return ptrs.data(); }
+
+  void prepend(const std::string& s) {
+    storage.insert(storage.begin(), std::vector<char>(s.begin(), s.end()));
+    storage.front().push_back('\0');
+    rebuildPtrs();
+  }
+
+ private:
+  void rebuildPtrs() {
+    ptrs.clear();
+    ptrs.reserve(storage.size() + 1);
+    for (auto& s : storage) {
+      ptrs.push_back(s.data());
+    }
+    ptrs.push_back(nullptr);
   }
 };
 

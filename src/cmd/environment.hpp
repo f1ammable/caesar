@@ -16,6 +16,7 @@ class Environment {
     this->define("print", std::make_shared<PrintFn>(PrintFn()));
     this->define("len", std::make_shared<LenFn>(LenFn()));
     this->define("breakpoint", std::make_shared<BreakpointFn>(BreakpointFn()));
+    this->define("run", std::make_shared<RunFn>(RunFn()));
   }
 
  public:

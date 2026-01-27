@@ -1,30 +1,21 @@
 #ifndef CAESAR_CONTEXT_H
 #define CAESAR_CONTEXT_H
 
-#include <string>
+#include <cassert>
+#include <memory>
 
-enum class ProgramState : std::uint8_t { STOPPED, RUNNING };
-enum class BinaryType : std::uint8_t { PE, ELF, MACHO };
-enum class PlatformType : std::uint8_t { MACH, LINUX, WIN };
-enum class FileError : std::uint8_t { FILE_NOT_FOUND, FILE_OK };
+#include "macho.hpp"
+#include "target.hpp"
+#include "util.hpp"
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class Context {
+ private:
+  Context() = default;
+  std::unique_ptr<Target> m_target = nullptr;
+
   // TODO: Handle endianness differences between platform and binary
  public:
-  consteval static PlatformType getPlatform() {
-    PlatformType t;  // NOLINT(cppcoreguidelines-init-variables)
-#if defined(__APPLE__)
-    t = PlatformType::MACH;
-#elif defined(__linux__)
-    t = PlatformType::LINUX;
-#elif defined(_WIN32)
-    t = PlatformType::LINUX;
-#endif
-    return t;
-  }
-
-  Context() = default;
   Context(const Context&) = delete;
   Context(Context&&) = delete;
   Context& operator=(const Context&) = delete;
@@ -35,9 +26,17 @@ class Context {
     return instance;
   }
 
-  std::string m_loaded_file;
-  bool m_is_running = false;
-  ProgramState m_state = ProgramState::STOPPED;
+  void initTarget(std::string path) {
+    // TODO: Add other platforms here
+    switch (getPlatform()) {
+      case PlatformType::MACH:
+        m_target = std::make_unique<Macho>(std::move(std::ifstream(path)),
+                                           std::move(path));
+    }
+    assert(m_target != nullptr && "Target is not supported yet!");
+  }
+
+  std::unique_ptr<Target>& getTarget() { return m_target; }
 };
 
 #endif

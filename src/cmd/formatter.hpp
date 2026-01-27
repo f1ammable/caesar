@@ -86,8 +86,8 @@ struct formatter<TokenType> {
       INSERT_ELEM(TokenType::STRING);
       INSERT_ELEM(TokenType::NUMBER);
       INSERT_ELEM(TokenType::NIL);
-      INSERT_ELEM(TokenType::TRUE);
-      INSERT_ELEM(TokenType::FALSE);
+      INSERT_ELEM(TokenType::BOOL_TRUE);
+      INSERT_ELEM(TokenType::BOOL_FALSE);
       INSERT_ELEM(TokenType::VAR);
       INSERT_ELEM(TokenType::END);
 #undef INSERT_ELEM

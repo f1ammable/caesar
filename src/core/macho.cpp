@@ -1,12 +1,20 @@
 #include "macho.hpp"
 
 #include <architecture/byte_order.h>
+#include <libproc.h>
 #include <mach-o/loader.h>
 #include <mach-o/swap.h>
 #include <mach/machine.h>
+#include <sys/proc_info.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 #include <cstring>
+#include <exception>
 #include <iostream>
+#include <stdexcept>
+
+#include "util.hpp"
 
 // Adapted from https://lowlevelbits.org/parsing-mach-o-files/
 
@@ -82,8 +90,39 @@ void Macho::dumpSections(uint32_t offset, uint32_t end) {
   }
 }
 
-Macho::Macho(std::ifstream f) : Target(std::move(f)) {
+Macho::Macho(std::ifstream f, std::string filePath)
+    : Target(std::move(f), std::move(filePath)) {
   readMagic();
   is64();
   maybeSwapBytes();
 }
+
+// TODO: Add appropriate error messages
+i32 Macho::launch(CStringArray& argList) {
+  i32 pid = fork();
+
+  if (pid == -1)
+    return -1;
+  else if (pid == 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+    char pathBuf[PROC_PIDPATHINFO_MAXSIZE];
+    int ret = proc_pidpath(getpid(), pathBuf, sizeof(pathBuf));
+    // TODO: Handle proc_pidpath error
+    if (ret <= 0)
+      _exit(-2);
+    else {
+      argList.prepend(pathBuf);
+
+      execve(m_file_path.c_str(), argList.data(), nullptr);
+    }
+  }
+  m_pid = pid;
+  int status;
+  waitpid(pid, &status, 0);
+  return pid;
+}
+
+i32 Macho::attach(u32 pid) { throw std::runtime_error("unimplemented"); };
+void Macho::setBreakpoint(u32 addr) {
+  throw std::runtime_error("unimplemented");
+};

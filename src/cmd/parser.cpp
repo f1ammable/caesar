@@ -3,6 +3,7 @@
 #include <memory>
 #include <variant>
 
+#include "cmd/token_type.hpp"
 #include "error.hpp"
 #include "expr.hpp"
 #include "stmnt.hpp"
@@ -71,8 +72,8 @@ std::unique_ptr<Expr> Parser::unary() {
 }
 
 std::unique_ptr<Expr> Parser::primary() {
-  if (match(TokenType::FALSE)) return std::make_unique<Literal>(false);
-  if (match(TokenType::TRUE)) return std::make_unique<Literal>(true);
+  if (match(TokenType::BOOL_FALSE)) return std::make_unique<Literal>(false);
+  if (match(TokenType::BOOL_TRUE)) return std::make_unique<Literal>(true);
   if (match(TokenType::NIL)) return std::make_unique<Literal>(std::monostate{});
 
   if (match(TokenType::NUMBER, TokenType::STRING)) {
@@ -127,8 +128,8 @@ std::unique_ptr<Stmnt> Parser::statement() {
     // Function call
     if (check(TokenType::IDENTIFIER) || check(TokenType::NUMBER) ||
         check(TokenType::STRING) || check(TokenType::LEFT_PAREN) ||
-        check(TokenType::TRUE) || check(TokenType::FALSE) ||
-        check(TokenType::NIL)) {
+        check(TokenType::BOOL_TRUE) || check(TokenType::BOOL_FALSE) ||
+        check(TokenType::NIL) || check(TokenType::END)) {
       m_current = saved;
       return funStmnt();
     }

@@ -1,3 +1,12 @@
+#include <cmd/error.hpp>
+#include <cmd/interpreter.hpp>
+#include <cmd/object.hpp>
+#include <cmd/parser.hpp>
+#include <cmd/scanner.hpp>
+#include <cmd/stmnt.hpp>
+#include <cmd/token.hpp>
+#include <core/context.hpp>
+#include <core/target.hpp>
 #include <cstdlib>
 #include <filesystem>
 #include <format>
@@ -6,16 +15,6 @@
 #include <string>
 #include <variant>
 #include <vector>
-
-#include "cmd/error.hpp"
-#include "cmd/interpreter.hpp"
-#include "cmd/parser.hpp"
-#include "cmd/scanner.hpp"
-#include "cmd/token.hpp"
-#include "context.hpp"
-#include "object.hpp"
-#include "stmnt.hpp"
-#include "core/target.hpp"
 
 namespace {
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
@@ -70,10 +69,10 @@ void runFile(const std::string& filePath) {
     std::cout << "Target does not exist!\n";
     runPrompt();
   } else {
-    ctx.m_loaded_file = std::filesystem::path(filePath).string();
-    if (Target::isFileValid(filePath))
-      std::cout << std::format("Target set to {}\n", ctx.m_loaded_file);
-    else
+    if (Target::isFileValid(filePath)) {
+      std::cout << std::format("Target set to {}\n", filePath);
+      Context::getInstance().initTarget(filePath);
+    } else
       // TODO: Add Mach-O FAT binary magic to Target::isFileValid
       std::cout << "Target is valid but cannot be ran on current platform!\n";
     runPrompt();
