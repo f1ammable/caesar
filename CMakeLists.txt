@@ -74,6 +74,10 @@ endif()
 add_executable(caesar src/main.cpp src/error.cpp src/error.hpp src/formatter.hpp)
 target_link_libraries(caesar PRIVATE caesar_cmd caesar_core)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_link_libraries(caesar PRIVATE caesar_macho)
+endif()
+
 # Optional: Build tests
 if(CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR OR CAESAR_BUILD_TESTS)
   option(CAESAR_BUILD_TESTS "Build tests" ON)
