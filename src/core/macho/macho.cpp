@@ -1,0 +1,318 @@
+#include "macho.hpp"
+
+#include <architecture/byte_order.h>
+#include <libproc.h>
+#include <mach-o/loader.h>
+#include <mach-o/swap.h>
+#include <mach/arm/kern_return.h>
+#include <mach/arm/thread_status.h>
+#include <mach/exception_types.h>
+#include <mach/kern_return.h>
+#include <mach/mach.h>
+#include <mach/mach_error.h>
+#include <mach/mach_init.h>
+#include <mach/mach_port.h>
+#include <mach/mach_traps.h>
+#include <mach/mach_types.h>
+#include <mach/machine.h>
+#include <mach/message.h>
+#include <mach/mig_errors.h>
+#include <mach/port.h>
+#include <mach/task.h>
+#include <mach/thread_act.h>
+#include <mach/thread_special_ports.h>
+#include <sys/proc_info.h>
+#include <sys/ptrace.h>
+#include <sys/signal.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+#include <cstring>
+#include <iostream>
+#include <stdexcept>
+
+#include "core/util.hpp"
+#include "error.hpp"
+extern "C" {
+#include "mach_excServer.h"
+}
+#include "ports.hpp"
+
+namespace {
+// NOLINT(cppcoreguidelines-avoid-non-const-global-variable)
+Macho* gActiveMacho = nullptr;
+}  // namespace
+
+// Adapted from https://lowlevelbits.org/parsing-mach-o-files/
+
+void Macho::dump() { dumpMachHeader(0); }
+
+void Macho::readMagic() {
+  uint32_t magic = 0;
+  m_file.seekg(0, std::ios::beg);
+  m_file.read(std::bit_cast<char*>(&magic), sizeof(uint32_t));
+  m_magic = magic;
+}
+
+void Macho::is64() {
+  if (m_magic == MH_MAGIC_64 || m_magic == MH_CIGAM_64) m_is_64 = true;
+}
+
+void Macho::maybeSwapBytes() {
+  if (m_magic == MH_CIGAM || m_magic == MH_CIGAM_64) m_is_swap = true;
+}
+
+void Macho::dumpMachHeader(int offset) {
+  uint32_t ncmds = 0;
+  int loadCmdsOffset = offset;
+
+  if (m_is_64) {
+    constexpr size_t headerSize = sizeof(struct mach_header_64);
+    auto header = loadBytesAndMaybeSwap<mach_header_64>(offset);
+    ncmds = header.ncmds;
+    loadCmdsOffset += headerSize;
+    std::cout << Macho::cpuTypeName(header.cputype) << '\n';
+  } else {
+    int headerSize = sizeof(struct mach_header);
+    auto header = loadBytesAndMaybeSwap<mach_header>(offset);
+  }
+
+  dumpSegmentCommands(loadCmdsOffset, ncmds);
+}
+
+void Macho::dumpSegmentCommands(int offset, uint32_t ncmds) {
+  uint32_t actualOffset = offset;
+  for (int i = 0; i < ncmds; i++) {
+    auto cmd = loadBytesAndMaybeSwap<load_command>(actualOffset);
+    if (cmd.cmd == LC_SEGMENT_64) {
+      auto segment = loadBytesAndMaybeSwap<segment_command_64>(actualOffset);
+      std::cout << std::format(
+                       "segname: {:<25} offset: 0x{:<12x} vmaddr: 0x{:<18x} "
+                       "vmsize: 0x{:x}",
+                       segment.segname, segment.fileoff, segment.vmaddr,
+                       segment.vmsize)
+                << '\n';
+      dumpSections(actualOffset + sizeof(segment_command_64),
+                   actualOffset + cmd.cmdsize);
+    }
+    actualOffset += cmd.cmdsize;
+  }
+}
+
+std::string Macho::cpuTypeName(cpu_type_t cpuType) {
+  for (const auto& x : CPU_TYPE_NAMES) {
+    if (cpuType == x.cpu_type) return x.cpu_name;
+  }
+  return "unknown";
+}
+
+void Macho::dumpSections(uint32_t offset, uint32_t end) {
+  uint32_t actualOffset = offset;
+  while (actualOffset != end) {
+    auto section = loadBytesAndMaybeSwap<section_64>(actualOffset);
+    std::cout << std::format("Section: {}; Address: 0x{:x}", section.sectname,
+                             section.addr)
+              << '\n';
+    actualOffset += sizeof(section_64);
+  }
+}
+
+Macho::Macho(std::ifstream f, std::string filePath)
+    : Target(std::move(f), std::move(filePath)) {
+  readMagic();
+  is64();
+  maybeSwapBytes();
+}
+
+// TODO: Add appropriate error messages
+i32 Macho::launch(CStringArray& argList) {
+  i32 pid = fork();
+
+  if (pid == -1)
+    return -1;
+  else if (pid == 0) {
+    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+    char pathBuf[PROC_PIDPATHINFO_MAXSIZE];
+    int ret = proc_pidpath(getpid(), pathBuf, sizeof(pathBuf));
+    // TODO: Handle proc_pidpath error
+    if (ret <= 0)
+      _exit(-2);
+    else {
+      argList.prepend(pathBuf);
+      execve(m_file_path.c_str(), argList.data(), nullptr);
+    }
+  }
+  m_pid = pid;
+  if (task_for_pid(mach_task_self(), pid, &this->m_task_port) != KERN_SUCCESS) {
+    std::cerr << "Failed to get port\n!";
+  }
+  return pid;
+}
+
+i32 Macho::attach(i32 pid) {
+  // http://uninformed.org/index.cgi?v=4&a=3&p=14
+  i32 res = this->setupExceptionPorts(m_task_port);
+  ptrace(PT_ATTACHEXC, pid, nullptr, 0);
+  return res;
+};
+
+void Macho::setBreakpoint(u32 addr) {
+  throw std::runtime_error("unimplemented");
+};
+
+void Macho::detach(i32 pid) { throw std::runtime_error("unimplemented"); }
+
+i32 Macho::setupExceptionPorts(task_t task) {
+  i32 res = 0;
+  gActiveMacho = this;
+  MachExcPorts savedPorts{};
+  task_get_exception_ports(
+      task,
+      EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC |
+          EXC_MASK_EMULATION | EXC_MASK_SOFTWARE | EXC_MASK_BREAKPOINT |
+          EXC_MASK_SYSCALL | EXC_MASK_MACH_SYSCALL | EXC_MASK_RPC_ALERT |
+          EXC_MASK_CRASH,
+      savedPorts.masks.data(), &savedPorts.excp_type_count,
+      savedPorts.ports.data(), savedPorts.behaviours.data(),
+      savedPorts.flavours.data());
+  kern_return_t kr = mach_port_allocate(mach_task_self(),
+                                        MACH_PORT_RIGHT_RECEIVE, &m_exc_port);
+
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(mach_error_string(kr));
+    res = -1;
+  }
+
+  kr = mach_port_insert_right(mach_task_self(), m_exc_port, m_exc_port,
+                              MACH_MSG_TYPE_MAKE_SEND);
+
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(mach_error_string(kr));
+    res = -1;
+  }
+
+  task_set_exception_ports(task, EXC_MASK_ALL, m_exc_port,
+                           EXCEPTION_DEFAULT | MACH_EXCEPTION_CODES,
+                           THREAD_STATE_NONE);
+
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(mach_error_string(kr));
+    res = -1;
+  }
+
+  return res;
+}
+
+void Macho::eventLoop() const {
+  std::array<char, 128> req{};
+  std::array<char, 128> rpl{};
+
+  while (true) {
+    kern_return_t kr = mach_msg(
+        reinterpret_cast<mach_msg_header_t*>(req.data()), MACH_RCV_MSG, 0,
+        sizeof(req), m_exc_port, MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
+
+    task_suspend(m_task_port);
+
+    if (kr == KERN_SUCCESS) {
+      boolean_t msgParsedCorrectly =
+          mach_exc_server(reinterpret_cast<mach_msg_header_t*>(req.data()),
+                          reinterpret_cast<mach_msg_header_t*>(rpl.data()));
+
+      if (msgParsedCorrectly == 0) {
+        kr = (reinterpret_cast<mig_reply_error_t*>(rpl.data()))->RetCode;
+      }
+    }
+
+    // resume task before replying to exception
+    task_resume(m_task_port);
+
+    mach_msg_size_t sendSz =
+        (reinterpret_cast<mach_msg_header_t*>(rpl.data()))->msgh_size;
+
+    mach_msg(reinterpret_cast<mach_msg_header_t*>(rpl.data()), MACH_SEND_MSG,
+             sendSz, 0, MACH_PORT_NULL, MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
+  }
+}
+
+extern "C" {
+
+kern_return_t catch_mach_exception_raise(mach_port_t excPort,
+                                         mach_port_t threadPort,
+                                         mach_port_t taskPort,
+                                         exception_type_t excType,
+                                         mach_exception_data_t codes,
+                                         mach_msg_type_number_t numCodes) {
+#pragma unused(excPort)
+#pragma unused(numCodes)
+#pragma unused(taskPort)
+
+  if (excType == EXC_SOFTWARE && codes[0] == EXC_SOFT_SIGNAL) {
+    if (codes[2] == SIGSTOP) codes[2] = 0;
+
+    ptrace(PT_THUPDATE, gActiveMacho->pid(),
+           (caddr_t) static_cast<uintptr_t>(threadPort), codes[2]);
+  }
+
+  return KERN_SUCCESS;
+}
+
+kern_return_t catch_mach_exception_raise_state(
+    mach_port_t excPort, exception_type_t exc,
+    const mach_exception_data_t code,  // NOLINT(misc-misplaced-const)
+    mach_msg_type_number_t codeCnt, int* flavour,
+    const thread_state_t oldState,  // NOLINT(misc-misplaced-const)
+    mach_msg_type_number_t oldStateCnt, thread_state_t newState,
+    mach_msg_type_number_t* newStateCnt) {
+#pragma unused(excPort)
+#pragma unused(exc)
+#pragma unused(code)
+#pragma unused(codeCnt)
+#pragma unused(flavour)
+#pragma unused(oldState)
+#pragma unused(oldStateCnt)
+#pragma unused(newState)
+#pragma unused(newStateCnt)
+  return MACH_RCV_INVALID_TYPE;
+}
+
+kern_return_t catch_mach_exception_raise_state_identity(
+    mach_port_t excPort, mach_port_t thread, mach_port_t task,
+    exception_type_t exc, mach_exception_data_t code,
+    mach_msg_type_number_t codeCnt, int* flavour, thread_state_t oldState,
+    mach_msg_type_number_t oldStateCnt, thread_state_t newState,
+    mach_msg_type_number_t* newStateCnt) {
+#pragma unused(excPort)
+#pragma unused(thread)
+#pragma unused(task)
+#pragma unused(exc)
+#pragma unused(code)
+#pragma unused(codeCnt)
+#pragma unused(flavour)
+#pragma unused(oldState)
+#pragma unused(oldStateCnt)
+#pragma unused(newState)
+#pragma unused(newStateCnt)
+
+  return MACH_RCV_INVALID_TYPE;
+}
+
+}  // extern "C"
+
+void Macho::threadSelect() {
+  std::array<thread_act_t*, THREAD_MACHINE_STATE_MAX> acts{};
+  mach_msg_type_number_t numThreads = 0;
+
+  kern_return_t kr = task_threads(m_task_port, acts.data(), &numThreads);
+
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(mach_error_string(kr));
+  }
+
+  kr = thread_get_special_port(*acts[0], THREAD_KERNEL_PORT, &m_task_port);
+
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(mach_error_string(kr));
+  }
+}
