@@ -90,7 +90,7 @@ std::unique_ptr<Expr> Parser::primary() {
     return std::make_unique<Grouping>(std::move(e));
   }
 
-  Error::error(peek().m_type, "Expected expression.", ErrorType::PARSE_ERROR);
+  CmdError::error(peek().m_type, "Expected expression.", CmdErrorType::PARSE_ERROR);
   return nullptr;
 }
 
@@ -110,7 +110,7 @@ std::unique_ptr<Expr> Parser::comparison() {
 Token Parser::consume(TokenType type, const std::string& msg) {
   if (check(type)) return advance();
 
-  Error::error(peek().m_type, msg, ErrorType::PARSE_ERROR);
+  CmdError::error(peek().m_type, msg, CmdErrorType::PARSE_ERROR);
   return peek();  // Return current token on error
 }
 
@@ -178,8 +178,8 @@ std::unique_ptr<Expr> Parser::assignment() {
       return std::make_unique<Assign>(name, std::move(value));
     }
 
-    Error::error(equals.m_type, "Invalid assignment target.",
-                 ErrorType::PARSE_ERROR);
+    CmdError::error(equals.m_type, "Invalid assignment target.",
+                 CmdErrorType::PARSE_ERROR);
   }
 
   return expr;

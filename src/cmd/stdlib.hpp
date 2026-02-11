@@ -21,8 +21,9 @@ class LenFn : public Callable {
     auto* val = std::get_if<std::string>(args.data());
 
     if (val == nullptr) {
-      Error::error(TokenType::IDENTIFIER, "len can only be called on a string",
-                   ErrorType::RUNTIME_ERROR);
+      CmdError::error(TokenType::IDENTIFIER,
+                      "len can only be called on a string",
+                      CmdErrorType::RUNTIME_ERROR);
       return std::monostate{};
     }
 
@@ -58,9 +59,9 @@ class BreakpointFn : public Callable {
     for (const auto& x : vec) {
       const auto* const str = std::get_if<std::string>(&x);
       if (str == nullptr) {
-        Error::error(TokenType::IDENTIFIER,
-                     "Please provide all arguments as strings",
-                     ErrorType::RUNTIME_ERROR);
+        CmdError::error(TokenType::IDENTIFIER,
+                        "Please provide all arguments as strings",
+                        CmdErrorType::RUNTIME_ERROR);
         break;
       }
       res.emplace_back(*str);
@@ -107,10 +108,10 @@ class RunFn : public Callable {
     for (const auto& x : v) {
       std::string temp = std::visit(ensureStr, x);
       if (temp.empty()) {
-        Error::error(
+        CmdError::error(
             TokenType::IDENTIFIER,
             "Only strings, bools and numbers are supported as arguments",
-            ErrorType::RUNTIME_ERROR);
+            CmdErrorType::RUNTIME_ERROR);
         break;
       }
 
@@ -132,13 +133,15 @@ class RunFn : public Callable {
     auto& target = Context::getInstance().getTarget();
     if (target == nullptr) {
       std::cerr << "Error: Target is not set!\n";
-      Error::getInstance().had_error = true;
+      CmdError::getInstance().m_had_error = true;
       return std::monostate{};
     }
 
     i32 pid = target->launch(argList);
     if (pid >= 0) return std::format("Target started with pid {}\n", pid);
     return "Unable to start target (are you running with sudo?)\n";
+    i32 res = target->attach(pid);
+    if (res != 0) return "Could not attach to target!\n";
   }
 };
 

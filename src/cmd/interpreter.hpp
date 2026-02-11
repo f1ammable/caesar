@@ -10,7 +10,7 @@
 class Interpreter : public IExprVisitor, IStmntVisitor {
  private:
   Environment& m_env = Environment::getInstance();
-  Error& err = Error::getInstance();
+  CmdError& err = CmdError::getInstance();
 
   Object evaluate(const std::unique_ptr<Expr>& expr);
   static bool isTruthy(const Object& object);

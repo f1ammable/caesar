@@ -68,8 +68,8 @@ void Scanner::scanToken() {
       } else if (isalpha(c) != 0) {
         identifier();
       } else {
-        Error::error(TokenType::END, "Unexpected character",
-                     ErrorType::SCAN_ERROR);
+        CmdError::error(TokenType::END, "Unexpected character",
+                     CmdErrorType::SCAN_ERROR);
       }
       break;
   }
@@ -100,8 +100,8 @@ void Scanner::string() {
   }
 
   if (isAtEnd()) {
-    Error::error(TokenType::STRING, "Unterminated string",
-                 ErrorType::SCAN_ERROR);
+    CmdError::error(TokenType::STRING, "Unterminated string",
+                 CmdErrorType::SCAN_ERROR);
     return;
   }
 

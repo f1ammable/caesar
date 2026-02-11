@@ -71,7 +71,7 @@ if(ENABLE_COVERAGE)
   message(STATUS "Code coverage enabled")
 endif()
 
-add_executable(caesar src/main.cpp)
+add_executable(caesar src/main.cpp src/error.cpp src/error.hpp src/formatter.hpp)
 target_link_libraries(caesar PRIVATE caesar_cmd caesar_core)
 
 # Optional: Build tests

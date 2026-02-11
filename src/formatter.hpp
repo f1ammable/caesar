@@ -1,16 +1,10 @@
 #ifndef FORMATTER_H
 #define FORMATTER_H
 
-#include <format>
-#include <map>
-#include <memory>
-#include <string>
-#include <variant>
-
-#include "callable.hpp"
-#include "object.hpp"
-#include "token.hpp"
-#include "token_type.hpp"
+#include <cmd/callable.hpp>
+#include <cmd/object.hpp>
+#include <cmd/token.hpp>
+#include <cmd/token_type.hpp>
 
 namespace std {
 template <>
