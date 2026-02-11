@@ -5,14 +5,8 @@ add_library(caesar_core STATIC
     dwarf/alloc.hpp
         context.hpp
         target.hpp
+        target.cpp
 )
-
-if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    target_sources(caesar_core PRIVATE
-        macho.hpp
-        macho.cpp
-    )
-endif()
 
 target_include_directories(caesar_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/..
@@ -20,3 +14,7 @@ target_include_directories(caesar_core PUBLIC
 
 find_package(libdwarf CONFIG REQUIRED)
 target_link_libraries(caesar_core PUBLIC libdwarf::dwarf)
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    add_subdirectory(macho)
+endif()
