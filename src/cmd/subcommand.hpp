@@ -29,10 +29,10 @@ class SubcommandHandler {
   Object exec(const std::string& subcmd, const std::vector<std::string>& args) {
     if (m_subcommands.contains(subcmd))
       return std::invoke(m_subcommands[subcmd], args);
-    Error::error(TokenType::IDENTIFIER,
+    CmdError::error(TokenType::IDENTIFIER,
                  std::format("Subcommand {} is not valid for {} command",
                              subcmd, m_callee),
-                 ErrorType::RUNTIME_ERROR);
+                 CmdErrorType::RUNTIME_ERROR);
     return std::monostate{};
   }
 };

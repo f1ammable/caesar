@@ -1,6 +1,4 @@
 add_library(caesar_cmd STATIC
-    error.cpp
-    error.hpp
     scanner.cpp
     scanner.hpp
     token.hpp
@@ -17,7 +15,6 @@ add_library(caesar_cmd STATIC
     callable.hpp
     stdlib.hpp
     object.hpp
-    formatter.hpp
 )
 
 target_include_directories(caesar_cmd PUBLIC

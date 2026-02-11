@@ -38,8 +38,8 @@ void Interpreter::checkNumberOperand(const Token& op, const Object& operand) {
 
     if constexpr (std::is_same_v<T, double>) return;
 
-    Error::error(op.m_type, "Operand must be a number",
-                 ErrorType::RUNTIME_ERROR);
+    CmdError::error(op.m_type, "Operand must be a number",
+                 CmdErrorType::RUNTIME_ERROR);
   };
 
   std::visit(visitor, operand);
@@ -135,11 +135,11 @@ Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
 
   if (fn != nullptr) {
     if (argList.size() != fn->get()->arity()) {
-      Error::error(
+      CmdError::error(
           stmnt.m_fn.m_type,
           std::format("Function requires {} arguments but {} were provided",
                       fn->get()->arity(), argList.size()),
-          ErrorType::RUNTIME_ERROR);
+          CmdErrorType::RUNTIME_ERROR);
       return std::monostate{};
     }
   }

@@ -31,15 +31,15 @@ inline Object binaryOperation(const Object& lhs, const Object& rhs, Op op,
       if constexpr (std::is_same_v<Op, std::plus<>>) {
         return left + right;
       } else {
-        Error::error(TokenType::STRING,
+        CmdError::error(TokenType::STRING,
                      std::format("Cannot apply operator {} to strings", opName),
-                     ErrorType::RUNTIME_ERROR);
+                     CmdErrorType::RUNTIME_ERROR);
         return std::monostate{};
       }
     } else {
-      Error::error(TokenType::STRING,
+      CmdError::error(TokenType::STRING,
                    std::format("Unsupported operand types for {}", opName),
-                   ErrorType::RUNTIME_ERROR);
+                   CmdErrorType::RUNTIME_ERROR);
       return std::monostate{};
     }
   };
@@ -57,11 +57,11 @@ inline bool comparisonOperation(const Object& lhs, const Object& rhs, Op op,
     if constexpr (std::is_arithmetic_v<L> && std::is_arithmetic_v<R>) {
       return op(static_cast<double>(left), static_cast<double>(right));
     } else {
-      Error::error(
+      CmdError::error(
           TokenType::STRING,
           std::format("Cannot apply operator {} to non-arithmetic types",
                       opName),
-          ErrorType::RUNTIME_ERROR);
+          CmdErrorType::RUNTIME_ERROR);
       return false;
     }
   };
