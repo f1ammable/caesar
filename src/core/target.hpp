@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <fstream>
 #include <memory>
+#include <thread>
 
 #include "typedefs.hpp"
 #include "util.hpp"
@@ -25,13 +26,12 @@ class Target {
 
  protected:
   explicit Target(std::ifstream f, std::string filePath)
-      : m_file(std::make_unique<std::ifstream>(std::move(f))),
-        m_file_path(std::move(filePath)) {}
+      : m_file(std::move(f)), m_file_path(std::move(filePath)) {}
   virtual void readMagic() = 0;
   virtual void is64() = 0;
 
   // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
-  std::unique_ptr<std::ifstream> m_file;
+  std::ifstream m_file;
   // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
   TargetState m_state = TargetState::STOPPED;
   // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
@@ -70,10 +70,18 @@ class Target {
     return magics.at(magicRead) == getPlatform();
   }
 
+  static std::unique_ptr<Target> create(const std::string& path);
+
   void setTargetState(TargetState s) { m_state = s; }
-  virtual i32 attach(u32 pid) = 0;
+  i32 pid() const { return m_pid; }
+  virtual i32 attach(i32 pid) = 0;
   virtual void setBreakpoint(u32 addr) = 0;
   virtual i32 launch(CStringArray& argList) = 0;
+  virtual void detach(i32 pid) = 0;
+  virtual void eventLoop() const = 0;
+
+  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
+  std::jthread m_waiter;
 };
 
 #endif

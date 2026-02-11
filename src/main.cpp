@@ -1,4 +1,3 @@
-#include <cmd/error.hpp>
 #include <cmd/interpreter.hpp>
 #include <cmd/object.hpp>
 #include <cmd/parser.hpp>
@@ -8,6 +7,7 @@
 #include <core/context.hpp>
 #include <core/target.hpp>
 #include <cstdlib>
+#include <error.hpp>
 #include <filesystem>
 #include <format>
 #include <iostream>
@@ -18,26 +18,26 @@
 
 namespace {
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
-Error& e = Error::getInstance();
+CmdError& cmdError = CmdError::getInstance();
 // NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 Context& ctx = Context::getInstance();
 
 void run(const std::string& src) {
   auto s = Scanner(src);
   const std::vector<Token> tokens = s.scanTokens();
-  if (e.had_error) {
+  if (cmdError.m_had_error) {
     return;  // Stop if scan errors occurred
   }
 
   Parser p = Parser(tokens);
   std::unique_ptr<Stmnt> const statement = p.parse();
-  if (e.had_error) {
+  if (cmdError.m_had_error) {
     return;
   }
 
   Interpreter interpreter = Interpreter();
   Object const result = interpreter.interpret(statement);
-  if (e.had_error) {
+  if (cmdError.m_had_error) {
     return;
   }
   if (!std::holds_alternative<std::monostate>(result)) {
@@ -59,7 +59,7 @@ void runPrompt() {
       continue;
     }
     run(line);
-    e.had_error = false;
+    cmdError.m_had_error = false;
   }
   std::cout << '\n';
 }
@@ -71,7 +71,7 @@ void runFile(const std::string& filePath) {
   } else {
     if (Target::isFileValid(filePath)) {
       std::cout << std::format("Target set to {}\n", filePath);
-      Context::getInstance().initTarget(filePath);
+      Target::create(filePath);
     } else
       // TODO: Add Mach-O FAT binary magic to Target::isFileValid
       std::cout << "Target is valid but cannot be ran on current platform!\n";
