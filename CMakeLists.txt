@@ -15,10 +15,10 @@ else()
 endif()
 
 # Only brew LLVM is supported on OSX at the moment
-if(CMAKE_SYSTEM_NAME MATCHES "Darwin")
+if(CMAKE_HOST_SYSTEM_NAME MATCHES "Darwin")
   # Find brew
   find_program(BREW_PROGRAM brew)
-  if(BREW_PROGRAM)
+  if(NOT BREW_PROGRAM)
     message(FATAL_ERROR "Homebrew not found! Install from https://brew.sh")
   endif()
 
