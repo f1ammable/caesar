@@ -23,7 +23,9 @@ class Context {
     static Context instance;
     return instance;
   }
+
   std::unique_ptr<Target>& getTarget() { return m_target; }
+  void setTarget(std::unique_ptr<Target> ptr) { m_target = std::move(ptr); }
 };
 
 #endif

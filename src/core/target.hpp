@@ -2,6 +2,7 @@
 #define CAESAR_TARGET_H
 
 #include <array>
+#include <atomic>
 #include <cstddef>
 #include <fstream>
 #include <memory>
@@ -33,7 +34,7 @@ class Target {
   // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
   std::ifstream m_file;
   // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
-  TargetState m_state = TargetState::STOPPED;
+  std::atomic<TargetState> m_state = TargetState::STOPPED;
   // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
   int32_t m_pid = 0;
   // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
@@ -73,12 +74,13 @@ class Target {
   static std::unique_ptr<Target> create(const std::string& path);
 
   void setTargetState(TargetState s) { m_state = s; }
+  std::atomic<TargetState>& getTargetState() { return m_state; }
   i32 pid() const { return m_pid; }
-  virtual i32 attach(i32 pid) = 0;
+  virtual i32 attach() = 0;
   virtual void setBreakpoint(u32 addr) = 0;
   virtual i32 launch(CStringArray& argList) = 0;
-  virtual void detach(i32 pid) = 0;
-  virtual void eventLoop() const = 0;
+  virtual void detach() = 0;
+  virtual void eventLoop() = 0;
 
   // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
   std::jthread m_waiter;

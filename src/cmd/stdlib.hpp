@@ -1,13 +1,18 @@
 #ifndef STDLIB_H
 #define STDLIB_H
 
+#include <sys/wait.h>
+
+#include <chrono>
 #include <core/context.hpp>
 #include <core/util.hpp>
 #include <iostream>
 #include <string>
+#include <thread>
 #include <variant>
 
 #include "callable.hpp"
+#include "core/target.hpp"
 #include "error.hpp"
 #include "subcommand.hpp"
 #include "token_type.hpp"
@@ -138,10 +143,20 @@ class RunFn : public Callable {
     }
 
     i32 pid = target->launch(argList);
-    if (pid >= 0) return std::format("Target started with pid {}\n", pid);
-    return "Unable to start target (are you running with sudo?)\n";
-    i32 res = target->attach(pid);
+    if (pid >= 0)
+      std::cout << std::format("Target started with pid {}\n", pid);
+    else
+      return "Unable to start target (are you running with sudo?)\n";
+
+    i32 res = target->attach();
     if (res != 0) return "Could not attach to target!\n";
+    target->setTargetState(TargetState::RUNNING);
+    target->m_waiter = std::jthread(&Target::eventLoop, target.get());
+
+    while (target->getTargetState() == TargetState::RUNNING)
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+    return std::monostate{};
   }
 };
 
