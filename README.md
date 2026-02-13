@@ -12,7 +12,7 @@ A modern C++20 cross-platform debugger.
 
 The debugger is built with a modular architecture:
 
-- **Core Engine** (`src/core/`): Core debugger engine functionality
+- **Core Engine** (`src/core/`): Core debugger engine functionality. Split into separate libraries per platform
 - **Command System** (`src/cmd/`): Expression parser, interpreter, and AST components
 
 ## Building
@@ -28,7 +28,7 @@ The debugger is built with a modular architecture:
 ```bash
 mkdir build
 cd build
-cmake ..
+cmake .. --preset (debug|release)
 make
 ```
 
