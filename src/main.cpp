@@ -71,7 +71,7 @@ void runFile(const std::string& filePath) {
   } else {
     if (Target::isFileValid(filePath)) {
       std::cout << std::format("Target set to {}\n", filePath);
-      Target::create(filePath);
+      Context::getInstance().setTarget(Target::create(filePath));
     } else
       // TODO: Add Mach-O FAT binary magic to Target::isFileValid
       std::cout << "Target is valid but cannot be ran on current platform!\n";

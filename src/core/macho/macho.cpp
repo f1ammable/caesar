@@ -10,6 +10,7 @@
 #include <mach/kern_return.h>
 #include <mach/mach.h>
 #include <mach/mach_error.h>
+#include <mach/mach_host.h>
 #include <mach/mach_init.h>
 #include <mach/mach_port.h>
 #include <mach/mach_traps.h>
@@ -28,16 +29,19 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include <cassert>
+#include <csignal>
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
 
 #include "core/util.hpp"
 #include "error.hpp"
+#include "macho/ports.hpp"
 extern "C" {
+#include "mach_exc.h"
 #include "mach_excServer.h"
 }
-#include "ports.hpp"
 
 namespace {
 // NOLINT(cppcoreguidelines-avoid-non-const-global-variable)
@@ -144,16 +148,19 @@ i32 Macho::launch(CStringArray& argList) {
     }
   }
   m_pid = pid;
-  if (task_for_pid(mach_task_self(), pid, &this->m_task_port) != KERN_SUCCESS) {
-    std::cerr << "Failed to get port\n!";
+  // TODO: This only works with sudo even when codesigned, why?
+  kern_return_t kr = task_for_pid(mach_task_self(), pid, &this->m_task);
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(mach_error_string(kr));
   }
   return pid;
 }
 
-i32 Macho::attach(i32 pid) {
+i32 Macho::attach() {
   // http://uninformed.org/index.cgi?v=4&a=3&p=14
-  i32 res = this->setupExceptionPorts(m_task_port);
-  ptrace(PT_ATTACHEXC, pid, nullptr, 0);
+  i32 res = this->setupExceptionPorts();
+  ptrace(PT_ATTACHEXC, m_pid, nullptr, 0);
+
   return res;
 };
 
@@ -161,14 +168,14 @@ void Macho::setBreakpoint(u32 addr) {
   throw std::runtime_error("unimplemented");
 };
 
-void Macho::detach(i32 pid) { throw std::runtime_error("unimplemented"); }
+void Macho::detach() { throw std::runtime_error("unimplemented"); }
 
-i32 Macho::setupExceptionPorts(task_t task) {
+i32 Macho::setupExceptionPorts() {
   i32 res = 0;
   gActiveMacho = this;
   MachExcPorts savedPorts{};
   task_get_exception_ports(
-      task,
+      m_task,
       EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC |
           EXC_MASK_EMULATION | EXC_MASK_SOFTWARE | EXC_MASK_BREAKPOINT |
           EXC_MASK_SYSCALL | EXC_MASK_MACH_SYSCALL | EXC_MASK_RPC_ALERT |
@@ -192,9 +199,14 @@ i32 Macho::setupExceptionPorts(task_t task) {
     res = -1;
   }
 
-  task_set_exception_ports(task, EXC_MASK_ALL, m_exc_port,
-                           EXCEPTION_DEFAULT | MACH_EXCEPTION_CODES,
-                           THREAD_STATE_NONE);
+  kr = task_set_exception_ports(
+      m_task,
+      EXC_MASK_BAD_ACCESS | EXC_MASK_BAD_INSTRUCTION | EXC_MASK_ARITHMETIC |
+          EXC_MASK_EMULATION | EXC_MASK_SOFTWARE | EXC_MASK_BREAKPOINT |
+          EXC_MASK_SYSCALL | EXC_MASK_MACH_SYSCALL | EXC_MASK_RPC_ALERT |
+          EXC_MASK_CRASH,
+      m_exc_port, EXCEPTION_STATE_IDENTITY | MACH_EXCEPTION_CODES,
+      ARM_THREAD_STATE64);
 
   if (kr != KERN_SUCCESS) {
     CoreError::error(mach_error_string(kr));
@@ -204,35 +216,30 @@ i32 Macho::setupExceptionPorts(task_t task) {
   return res;
 }
 
-void Macho::eventLoop() const {
-  std::array<char, 128> req{};
-  std::array<char, 128> rpl{};
+void Macho::eventLoop() {
+  mach_msg_return_t ret = 0;
+  __RequestUnion__mach_exc_subsystem msgBuf{};
+  __ReplyUnion__mach_exc_subsystem rplBuf{};
 
-  while (true) {
-    kern_return_t kr = mach_msg(
-        reinterpret_cast<mach_msg_header_t*>(req.data()), MACH_RCV_MSG, 0,
-        sizeof(req), m_exc_port, MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
+  auto* msg = reinterpret_cast<mach_msg_header_t*>(&msgBuf);
+  auto* rpl = reinterpret_cast<mach_msg_header_t*>(&rplBuf);
 
-    task_suspend(m_task_port);
-
-    if (kr == KERN_SUCCESS) {
-      boolean_t msgParsedCorrectly =
-          mach_exc_server(reinterpret_cast<mach_msg_header_t*>(req.data()),
-                          reinterpret_cast<mach_msg_header_t*>(rpl.data()));
-
-      if (msgParsedCorrectly == 0) {
-        kr = (reinterpret_cast<mig_reply_error_t*>(rpl.data()))->RetCode;
-      }
+  while (m_state == TargetState::RUNNING) {
+    ret = mach_msg(msg, MACH_RCV_MSG | MACH_RCV_TIMEOUT, 0,
+                   sizeof(__RequestUnion__mach_exc_subsystem), m_exc_port, 100,
+                   MACH_PORT_NULL);
+    if (ret == MACH_RCV_TIMED_OUT) {
+      int status = 0;
+      if (waitpid(m_pid, &status, WNOHANG) > 0) m_state = TargetState::STOPPED;
+      continue;
     }
+    assert(ret == MACH_MSG_SUCCESS && "Did not receive mach message");
 
-    // resume task before replying to exception
-    task_resume(m_task_port);
+    mach_exc_server(msg, rpl);
 
-    mach_msg_size_t sendSz =
-        (reinterpret_cast<mach_msg_header_t*>(rpl.data()))->msgh_size;
-
-    mach_msg(reinterpret_cast<mach_msg_header_t*>(rpl.data()), MACH_SEND_MSG,
-             sendSz, 0, MACH_PORT_NULL, MACH_MSG_TIMEOUT_NONE, MACH_PORT_NULL);
+    ret = mach_msg(rpl, MACH_SEND_MSG, rpl->msgh_size, 0, MACH_PORT_NULL, 0,
+                   MACH_PORT_NULL);
+    assert(ret == MACH_MSG_SUCCESS && "Did not send mach message");
   }
 }
 
@@ -245,17 +252,12 @@ kern_return_t catch_mach_exception_raise(mach_port_t excPort,
                                          mach_exception_data_t codes,
                                          mach_msg_type_number_t numCodes) {
 #pragma unused(excPort)
+#pragma unused(threadPort)
+#pragma unused(excType)
 #pragma unused(numCodes)
 #pragma unused(taskPort)
-
-  if (excType == EXC_SOFTWARE && codes[0] == EXC_SOFT_SIGNAL) {
-    if (codes[2] == SIGSTOP) codes[2] = 0;
-
-    ptrace(PT_THUPDATE, gActiveMacho->pid(),
-           (caddr_t) static_cast<uintptr_t>(threadPort), codes[2]);
-  }
-
-  return KERN_SUCCESS;
+#pragma unused(codes)
+  return KERN_FAILURE;
 }
 
 kern_return_t catch_mach_exception_raise_state(
@@ -269,12 +271,11 @@ kern_return_t catch_mach_exception_raise_state(
 #pragma unused(exc)
 #pragma unused(code)
 #pragma unused(codeCnt)
-#pragma unused(flavour)
-#pragma unused(oldState)
 #pragma unused(oldStateCnt)
 #pragma unused(newState)
 #pragma unused(newStateCnt)
-  return MACH_RCV_INVALID_TYPE;
+
+  return KERN_FAILURE;
 }
 
 kern_return_t catch_mach_exception_raise_state_identity(
@@ -284,18 +285,43 @@ kern_return_t catch_mach_exception_raise_state_identity(
     mach_msg_type_number_t oldStateCnt, thread_state_t newState,
     mach_msg_type_number_t* newStateCnt) {
 #pragma unused(excPort)
-#pragma unused(thread)
 #pragma unused(task)
-#pragma unused(exc)
 #pragma unused(code)
 #pragma unused(codeCnt)
-#pragma unused(flavour)
-#pragma unused(oldState)
-#pragma unused(oldStateCnt)
 #pragma unused(newState)
 #pragma unused(newStateCnt)
+  gActiveMacho->setTargetState(TargetState::STOPPED);
 
-  return MACH_RCV_INVALID_TYPE;
+  if (exc == EXC_SOFTWARE) {
+    if (codeCnt >= 2 && code[0] == EXC_SOFT_SIGNAL && code[1] == SIGKILL) {
+      return KERN_SUCCESS;
+    }
+    pid_t pid = 0;
+    pid_for_task(task, &pid);
+    ptrace(PT_THUPDATE, pid,
+           reinterpret_cast<caddr_t>(static_cast<uintptr_t>(thread)), 0);
+    gActiveMacho->setTargetState(TargetState::RUNNING);
+    return KERN_SUCCESS;
+  }
+
+  if (exc == EXC_BAD_INSTRUCTION && *flavour == ARM_THREAD_STATE64) {
+    auto* oldArmState = reinterpret_cast<arm_thread_state64_t*>(oldState);
+
+    printf("Fault at: %llu\n", oldArmState->__pc);
+    oldArmState->__pc += 4;
+    printf("Resume at: %llu\n", oldArmState->__pc);
+
+    kern_return_t kr =
+        thread_set_state(thread, ARM_THREAD_STATE64, oldState, oldStateCnt);
+    if (kr != KERN_SUCCESS) {
+      printf("thread_set_state failed: %s\n", mach_error_string(kr));
+      return KERN_FAILURE;
+    }
+    gActiveMacho->setTargetState(TargetState::RUNNING);
+    return KERN_SUCCESS;
+  }
+
+  return KERN_FAILURE;
 }
 
 }  // extern "C"
@@ -304,13 +330,13 @@ void Macho::threadSelect() {
   std::array<thread_act_t*, THREAD_MACHINE_STATE_MAX> acts{};
   mach_msg_type_number_t numThreads = 0;
 
-  kern_return_t kr = task_threads(m_task_port, acts.data(), &numThreads);
+  kern_return_t kr = task_threads(m_task, acts.data(), &numThreads);
 
   if (kr != KERN_SUCCESS) {
     CoreError::error(mach_error_string(kr));
   }
 
-  kr = thread_get_special_port(*acts[0], THREAD_KERNEL_PORT, &m_task_port);
+  kr = thread_get_special_port(*acts[0], THREAD_KERNEL_PORT, &m_task);
 
   if (kr != KERN_SUCCESS) {
     CoreError::error(mach_error_string(kr));
