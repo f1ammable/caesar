@@ -30,23 +30,18 @@
 #include <unistd.h>
 
 #include <cassert>
+#include <core/context.hpp>
+#include <core/util.hpp>
 #include <csignal>
 #include <cstring>
+#include <error.hpp>
 #include <iostream>
+#include <macho/ports.hpp>
 #include <stdexcept>
-
-#include "core/util.hpp"
-#include "error.hpp"
-#include "macho/ports.hpp"
 extern "C" {
 #include "mach_exc.h"
 #include "mach_excServer.h"
 }
-
-namespace {
-// NOLINT(cppcoreguidelines-avoid-non-const-global-variable)
-Macho* gActiveMacho = nullptr;
-}  // namespace
 
 // Adapted from https://lowlevelbits.org/parsing-mach-o-files/
 
@@ -172,7 +167,6 @@ void Macho::detach() { throw std::runtime_error("unimplemented"); }
 
 i32 Macho::setupExceptionPorts() {
   i32 res = 0;
-  gActiveMacho = this;
   MachExcPorts savedPorts{};
   task_get_exception_ports(
       m_task,
@@ -290,7 +284,8 @@ kern_return_t catch_mach_exception_raise_state_identity(
 #pragma unused(codeCnt)
 #pragma unused(newState)
 #pragma unused(newStateCnt)
-  gActiveMacho->setTargetState(TargetState::STOPPED);
+  auto& target = Context::getInstance().getTarget();
+  target->setTargetState(TargetState::STOPPED);
 
   if (exc == EXC_SOFTWARE) {
     if (codeCnt >= 2 && code[0] == EXC_SOFT_SIGNAL && code[1] == SIGKILL) {
@@ -300,7 +295,7 @@ kern_return_t catch_mach_exception_raise_state_identity(
     pid_for_task(task, &pid);
     ptrace(PT_THUPDATE, pid,
            reinterpret_cast<caddr_t>(static_cast<uintptr_t>(thread)), 0);
-    gActiveMacho->setTargetState(TargetState::RUNNING);
+    target->setTargetState(TargetState::RUNNING);
     return KERN_SUCCESS;
   }
 
@@ -317,7 +312,7 @@ kern_return_t catch_mach_exception_raise_state_identity(
       printf("thread_set_state failed: %s\n", mach_error_string(kr));
       return KERN_FAILURE;
     }
-    gActiveMacho->setTargetState(TargetState::RUNNING);
+    target->setTargetState(TargetState::RUNNING);
     return KERN_SUCCESS;
   }
 
