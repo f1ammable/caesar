@@ -30,9 +30,11 @@ class Macho : public Target {
   i32 launch(CStringArray& argList) override;
   void detach() override;
   void eventLoop() override;
+  void resume(ResumeType cond) override;
   static std::string exceptionReason(exception_type_t exc,
                                      mach_msg_type_number_t codeCnt,
                                      mach_exception_data_t code);
+  void setThreadPort(mach_port_t thread) { m_thread_port = thread; }
 
  private:
   uint32_t m_magic = 0;
@@ -66,7 +68,7 @@ class Macho : public Target {
   static std::string cpuTypeName(cpu_type_t cpuType);
   void dumpSections(uint32_t offset, uint32_t end);
   i32 setupExceptionPorts();
-  void threadSelect();  // Currently only selects main thread
+  mach_port_t threadSelect();  // TODO: doesn't work (yet)
 };
 
 #endif  // CAESAR_MACHO_HPP

@@ -14,6 +14,7 @@
 enum class TargetState : std::uint8_t { STOPPED, RUNNING };
 enum class BinaryType : std::uint8_t { MACHO, ELF, PE };
 enum class TargetError : std::uint8_t { FORK_FAIL };
+enum class ResumeType : std::uint8_t { RESUME };
 
 class Target {
  private:
@@ -81,9 +82,17 @@ class Target {
   virtual i32 launch(CStringArray& argList) = 0;
   virtual void detach() = 0;
   virtual void eventLoop() = 0;
+  virtual void resume(ResumeType cond) = 0;
+  void startEventLoop() {
+    m_waiter = std::jthread(&Target::eventLoop, this);
+    while (m_state == TargetState::RUNNING)
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  }
 
   // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
   std::jthread m_waiter;
+  // NOLINTNEXTLINE(cppcoreguidelines-non-private-member-variables-in-classes)
+  bool m_started = false;
 };
 
 #endif
