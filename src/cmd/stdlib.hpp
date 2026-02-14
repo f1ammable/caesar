@@ -151,6 +151,8 @@ class RunFn : public Callable {
     i32 res = target->attach();
     if (res != 0) return "Could not attach to target!\n";
     target->setTargetState(TargetState::RUNNING);
+    // TODO: Reset this when target exits
+    target->m_started = true;
     target->m_waiter = std::jthread(&Target::eventLoop, target.get());
 
     while (target->getTargetState() == TargetState::RUNNING)

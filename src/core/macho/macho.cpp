@@ -287,6 +287,8 @@ kern_return_t catch_mach_exception_raise_state_identity(
   auto& target = Context::getInstance().getTarget();
   target->setTargetState(TargetState::STOPPED);
 
+  std::cout << Macho::exceptionReason(exc, codeCnt, code);
+
   if (exc == EXC_SOFTWARE) {
     if (codeCnt >= 2 && code[0] == EXC_SOFT_SIGNAL && code[1] == SIGKILL) {
       return KERN_SUCCESS;
@@ -333,4 +335,77 @@ void Macho::threadSelect() {
   if (kr != KERN_SUCCESS) {
     CoreError::error(mach_error_string(kr));
   }
+}
+
+std::string Macho::exceptionReason(exception_type_t exc,
+                                   mach_msg_type_number_t codeCnt,
+                                   mach_exception_data_t code) {
+  const auto signalStr = [] {
+    std::map<mach_exception_data_type_t, std::string> res;
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define INSERT_ELEM(p) res.emplace(p, #p);
+    INSERT_ELEM(SIGHUP);
+    INSERT_ELEM(SIGINT);
+    INSERT_ELEM(SIGQUIT);
+    INSERT_ELEM(SIGILL);
+    INSERT_ELEM(SIGTRAP);
+    INSERT_ELEM(SIGABRT);
+    INSERT_ELEM(SIGFPE);
+    INSERT_ELEM(SIGKILL);
+    INSERT_ELEM(SIGBUS);
+    INSERT_ELEM(SIGSEGV);
+    INSERT_ELEM(SIGSYS);
+    INSERT_ELEM(SIGPIPE);
+    INSERT_ELEM(SIGALRM);
+    INSERT_ELEM(SIGTERM);
+    INSERT_ELEM(SIGURG);
+    INSERT_ELEM(SIGSTOP);
+    INSERT_ELEM(SIGTSTP);
+    INSERT_ELEM(SIGCONT);
+    INSERT_ELEM(SIGCHLD);
+    INSERT_ELEM(SIGTTIN);
+    INSERT_ELEM(SIGTTOU);
+    INSERT_ELEM(SIGIO);
+    INSERT_ELEM(SIGXCPU);
+    INSERT_ELEM(SIGXFSZ);
+    INSERT_ELEM(SIGVTALRM);
+    INSERT_ELEM(SIGPROF);
+    INSERT_ELEM(SIGWINCH);
+    INSERT_ELEM(SIGINFO);
+    INSERT_ELEM(SIGUSR1);
+    INSERT_ELEM(SIGUSR2);
+#undef INSERT_ELEM
+    return res;
+  };
+
+  const auto machExcStr = [] {
+    std::map<mach_exception_data_type_t, std::string> res{};
+#define INSERT_ELEM(p) res.emplace(p, #p);
+    INSERT_ELEM(EXC_BAD_ACCESS);
+    INSERT_ELEM(EXC_BAD_INSTRUCTION);
+    INSERT_ELEM(EXC_ARITHMETIC);
+    INSERT_ELEM(EXC_EMULATION);
+    INSERT_ELEM(EXC_SOFTWARE);
+    INSERT_ELEM(EXC_BREAKPOINT);
+    INSERT_ELEM(EXC_SYSCALL);
+    INSERT_ELEM(EXC_MACH_SYSCALL);
+    INSERT_ELEM(EXC_RPC_ALERT);
+    INSERT_ELEM(EXC_CRASH);
+    INSERT_ELEM(EXC_RESOURCE);
+    INSERT_ELEM(EXC_GUARD);
+    INSERT_ELEM(EXC_CORPSE_NOTIFY);
+#undef INSERT_ELEM
+    return res;
+  };
+
+  std::string reason{};
+
+  // Unix signal
+  if (exc == EXC_SOFTWARE && codeCnt >= 2 && code[0] == EXC_SOFT_SIGNAL) {
+    reason = std::format("signal {}\n", signalStr()[code[1]]);
+  } else {
+    reason = std::format("reason {}\n", machExcStr()[exc]);
+  }
+
+  return reason;
 }
