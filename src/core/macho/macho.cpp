@@ -24,9 +24,11 @@
 #include <mach/thread_special_ports.h>
 #include <mach/vm_map.h>
 #include <mach/vm_types.h>
+#include <spawn.h>
 #include <sys/proc_info.h>
 #include <sys/ptrace.h>
 #include <sys/signal.h>
+#include <sys/spawn.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -130,23 +132,24 @@ Macho::Macho(std::ifstream f, std::string filePath)
 
 // TODO: Add appropriate error messages
 i32 Macho::launch(CStringArray& argList) {
-  i32 pid = fork();
+  pid_t pid = 0;
+  int status = 0;
+  posix_spawnattr_t attr = nullptr;
 
-  if (pid == -1)
-    return -1;
-  else if (pid == 0) {
-    // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
-    char pathBuf[PROC_PIDPATHINFO_MAXSIZE];
-    int ret = proc_pidpath(getpid(), pathBuf, sizeof(pathBuf));
-    // TODO: Handle proc_pidpath error
-    if (ret <= 0)
-      _exit(-2);
-    else {
-      argList.prepend(pathBuf);
-      execve(m_file_path.c_str(), argList.data(), nullptr);
-    }
-  }
+  status = posix_spawnattr_init(&attr);
+  if (status != 0) return -1;
+
+  status = posix_spawnattr_setflags(&attr, POSIX_SPAWN_START_SUSPENDED);
+  if (status != 0) return -1;
+
+  argList.prepend(m_file_path);
+
+  status = posix_spawn(&pid, m_file_path.c_str(), nullptr, &attr,
+                       argList.data(), nullptr);
+  posix_spawnattr_destroy(&attr);
+  if (status != 0) return -1;
   m_pid = pid;
+
   // TODO: This only works with sudo even when codesigned, why?
   kern_return_t kr = task_for_pid(mach_task_self(), pid, &this->m_task);
   if (kr != KERN_SUCCESS) {
