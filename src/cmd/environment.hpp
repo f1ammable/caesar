@@ -17,6 +17,7 @@ class Environment {
     this->define("len", std::make_shared<LenFn>(LenFn()));
     this->define("breakpoint", std::make_shared<BreakpointFn>(BreakpointFn()));
     this->define("run", std::make_shared<RunFn>(RunFn()));
+    this->define("resume", std::make_shared<ContinueFn>(ContinueFn()));
   }
 
  public:

@@ -153,11 +153,24 @@ class RunFn : public Callable {
     target->setTargetState(TargetState::RUNNING);
     // TODO: Reset this when target exits
     target->m_started = true;
-    target->m_waiter = std::jthread(&Target::eventLoop, target.get());
+    target->startEventLoop();
 
-    while (target->getTargetState() == TargetState::RUNNING)
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    return std::monostate{};
+  }
+};
 
+class ContinueFn : public Callable {
+ public:
+  [[nodiscard]] int arity() const override { return 0; }
+  [[nodiscard]] std::string str() const override {
+    return "<native fn: continue>";
+  }
+  Object call(std::vector<Object> args) override {
+    auto& target = Context::getInstance().getTarget();
+    if (target->getTargetState() != TargetState::STOPPED)
+      std::cout << "Target still seems to think its running?\n";
+    target->resume(ResumeType::RESUME);
+    target->startEventLoop();
     return std::monostate{};
   }
 };

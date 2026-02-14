@@ -22,6 +22,8 @@
 #include <mach/task.h>
 #include <mach/thread_act.h>
 #include <mach/thread_special_ports.h>
+#include <mach/vm_map.h>
+#include <mach/vm_types.h>
 #include <sys/proc_info.h>
 #include <sys/ptrace.h>
 #include <sys/signal.h>
@@ -38,6 +40,8 @@
 #include <iostream>
 #include <macho/ports.hpp>
 #include <stdexcept>
+
+#include "target.hpp"
 extern "C" {
 #include "mach_exc.h"
 #include "mach_excServer.h"
@@ -289,51 +293,60 @@ kern_return_t catch_mach_exception_raise_state_identity(
 
   std::cout << Macho::exceptionReason(exc, codeCnt, code);
 
-  if (exc == EXC_SOFTWARE) {
-    if (codeCnt >= 2 && code[0] == EXC_SOFT_SIGNAL && code[1] == SIGKILL) {
-      return KERN_SUCCESS;
-    }
-    pid_t pid = 0;
-    pid_for_task(task, &pid);
-    ptrace(PT_THUPDATE, pid,
-           reinterpret_cast<caddr_t>(static_cast<uintptr_t>(thread)), 0);
-    target->setTargetState(TargetState::RUNNING);
-    return KERN_SUCCESS;
-  }
+  auto* macho = dynamic_cast<Macho*>(Context::getInstance().getTarget().get());
+  auto* oldArmState = reinterpret_cast<arm_thread_state64_t*>(oldState);
+  auto* newArmState = reinterpret_cast<arm_thread_state64_t*>(newState);
+  memcpy(newArmState, oldArmState, sizeof(arm_thread_state64_t));
+
+  macho->setThreadPort(thread);
 
   if (exc == EXC_BAD_INSTRUCTION && *flavour == ARM_THREAD_STATE64) {
-    auto* oldArmState = reinterpret_cast<arm_thread_state64_t*>(oldState);
-    auto* newArmState = reinterpret_cast<arm_thread_state64_t*>(newState);
-    memcpy(newArmState, oldArmState, sizeof(arm_thread_state64_t));
-
     printf("Fault at: %llu\n", oldArmState->__pc);
     newArmState->__pc += 4;
     printf("Resume at: %llu\n", newArmState->__pc);
-    *newStateCnt = oldStateCnt;
-
-    target->setTargetState(TargetState::RUNNING);
-    return KERN_SUCCESS;
   }
 
-  return KERN_FAILURE;
+  *newStateCnt = oldStateCnt;
+  return KERN_SUCCESS;
 }
 
 }  // extern "C"
 
-void Macho::threadSelect() {
-  std::array<thread_act_t*, THREAD_MACHINE_STATE_MAX> acts{};
+mach_port_t Macho::threadSelect() {
+  std::cout << "TASK: " << m_task << '\n';
+  thread_act_array_t acts{};
   mach_msg_type_number_t numThreads = 0;
 
-  kern_return_t kr = task_threads(m_task, acts.data(), &numThreads);
+  kern_return_t kr = task_threads(m_task, &acts, &numThreads);
 
   if (kr != KERN_SUCCESS) {
+    std::cout << "task_threads fail!\n";
     CoreError::error(mach_error_string(kr));
   }
 
-  kr = thread_get_special_port(*acts[0], THREAD_KERNEL_PORT, &m_task);
+  thread_act_t mainThread = acts[0];  // Cleanup
+  vm_deallocate(mach_task_self(), reinterpret_cast<vm_address_t>(acts),
+                numThreads * sizeof(thread_act_t));
 
-  if (kr != KERN_SUCCESS) {
-    CoreError::error(mach_error_string(kr));
+  return mainThread;
+}
+
+void Macho::resume(ResumeType cond) {
+  auto& target = Context::getInstance().getTarget();
+
+  if (!m_started) {
+    std::cerr << "Target is not running!\n";
+    return;
+  }
+
+  switch (cond) {
+    case ResumeType::RESUME:
+      ptrace(PT_THUPDATE, m_pid,
+             reinterpret_cast<caddr_t>(static_cast<uintptr_t>(m_thread_port)),
+             0);
+      ptrace(PT_CONTINUE, m_pid, reinterpret_cast<caddr_t>(1), 0);
+      target->setTargetState(TargetState::RUNNING);
+      break;
   }
 }
 
@@ -342,7 +355,6 @@ std::string Macho::exceptionReason(exception_type_t exc,
                                    mach_exception_data_t code) {
   const auto signalStr = [] {
     std::map<mach_exception_data_type_t, std::string> res;
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INSERT_ELEM(p) res.emplace(p, #p);
     INSERT_ELEM(SIGHUP);
     INSERT_ELEM(SIGINT);
