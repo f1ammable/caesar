@@ -301,17 +301,14 @@ kern_return_t catch_mach_exception_raise_state_identity(
 
   if (exc == EXC_BAD_INSTRUCTION && *flavour == ARM_THREAD_STATE64) {
     auto* oldArmState = reinterpret_cast<arm_thread_state64_t*>(oldState);
+    auto* newArmState = reinterpret_cast<arm_thread_state64_t*>(newState);
+    memcpy(newArmState, oldArmState, sizeof(arm_thread_state64_t));
 
     printf("Fault at: %llu\n", oldArmState->__pc);
-    oldArmState->__pc += 4;
-    printf("Resume at: %llu\n", oldArmState->__pc);
+    newArmState->__pc += 4;
+    printf("Resume at: %llu\n", newArmState->__pc);
+    *newStateCnt = oldStateCnt;
 
-    kern_return_t kr =
-        thread_set_state(thread, ARM_THREAD_STATE64, oldState, oldStateCnt);
-    if (kr != KERN_SUCCESS) {
-      printf("thread_set_state failed: %s\n", mach_error_string(kr));
-      return KERN_FAILURE;
-    }
     target->setTargetState(TargetState::RUNNING);
     return KERN_SUCCESS;
   }

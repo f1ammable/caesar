@@ -5,5 +5,6 @@
 int main() {
   sleep(5);
   __asm__("udf #0");
+  printf("survived!\n");
   return 0;
 }
