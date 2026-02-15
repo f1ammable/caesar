@@ -51,8 +51,6 @@ extern "C" {
 
 // Adapted from https://lowlevelbits.org/parsing-mach-o-files/
 
-void Macho::dump() { dumpMachHeader(0); }
-
 void Macho::readMagic() {
   uint32_t magic = 0;
   m_file.seekg(0, std::ios::beg);
@@ -68,8 +66,8 @@ void Macho::maybeSwapBytes() {
   if (m_magic == MH_CIGAM || m_magic == MH_CIGAM_64) m_is_swap = true;
 }
 
-void Macho::dumpMachHeader(int offset) {
-  uint32_t ncmds = 0;
+void Macho::dumpHeader(int offset) {
+  u32 ncmds = 0;
   int loadCmdsOffset = offset;
 
   if (m_is_64) {
