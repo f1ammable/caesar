@@ -167,8 +167,10 @@ class ContinueFn : public Callable {
   }
   Object call(std::vector<Object> args) override {
     auto& target = Context::getInstance().getTarget();
-    if (target->getTargetState() != TargetState::STOPPED)
+    if (target->getTargetState() != TargetState::STOPPED) {
       std::cout << "Target still seems to think its running?\n";
+      return std::monostate{};
+    }
     target->resume(ResumeType::RESUME);
     target->startEventLoop();
     return std::monostate{};

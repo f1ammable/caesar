@@ -11,7 +11,7 @@
 #include "typedefs.hpp"
 #include "util.hpp"
 
-enum class TargetState : std::uint8_t { STOPPED, RUNNING };
+enum class TargetState : std::uint8_t { STOPPED, RUNNING, EXITED };
 enum class BinaryType : std::uint8_t { MACHO, ELF, PE };
 enum class TargetError : std::uint8_t { FORK_FAIL };
 enum class ResumeType : std::uint8_t { RESUME };

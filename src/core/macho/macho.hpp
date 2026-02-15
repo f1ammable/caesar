@@ -35,6 +35,7 @@ class Macho : public Target {
                                      mach_msg_type_number_t codeCnt,
                                      mach_exception_data_t code);
   void setThreadPort(mach_port_t thread) { m_thread_port = thread; }
+  mach_port_t& getThreadPort() { return m_thread_port; }
 
  private:
   uint32_t m_magic = 0;
