@@ -24,13 +24,15 @@ struct CpuTypeNames {
 class Macho : public Target {
  public:
   explicit Macho(std::ifstream f, std::string filePath);
-  void dump() override;
+
+  void dumpHeader(int offset) override;
   i32 attach() override;
-  void setBreakpoint(u32 addr) override;
+  i32 setBreakpoint(u32 addr) override;
   i32 launch(CStringArray& argList) override;
   void detach() override;
   void eventLoop() override;
   void resume(ResumeType cond) override;
+
   static std::string exceptionReason(exception_type_t exc,
                                      mach_msg_type_number_t codeCnt,
                                      mach_exception_data_t code);
@@ -44,9 +46,15 @@ class Macho : public Target {
   task_t m_task = 0;
   mach_port_t m_exc_port = 0;
   mach_port_t m_thread_port = 0;
+  static constexpr std::array<CpuTypeNames, 4> CPU_TYPE_NAMES = {
+      {{.cpu_type = CPU_TYPE_I386, .cpu_name = "i386"},
+       {.cpu_type = CPU_TYPE_X86_64, .cpu_name = "x86_64"},
+       {.cpu_type = CPU_TYPE_ARM, .cpu_name = "arm"},
+       {.cpu_type = CPU_TYPE_ARM64, .cpu_name = "arm64"}}};
 
   void readMagic() override;
   void is64() override;
+
   void maybeSwapBytes();
 
   template <typename T>
@@ -58,14 +66,7 @@ class Macho : public Target {
     return buf;
   }
 
-  void dumpMachHeader(int offset);
   void dumpSegmentCommands(int offset, uint32_t ncmds);
-
-  static constexpr std::array<CpuTypeNames, 4> CPU_TYPE_NAMES = {
-      {{.cpu_type = CPU_TYPE_I386, .cpu_name = "i386"},
-       {.cpu_type = CPU_TYPE_X86_64, .cpu_name = "x86_64"},
-       {.cpu_type = CPU_TYPE_ARM, .cpu_name = "arm"},
-       {.cpu_type = CPU_TYPE_ARM64, .cpu_name = "arm64"}}};
   static std::string cpuTypeName(cpu_type_t cpuType);
   void dumpSections(uint32_t offset, uint32_t end);
   i32 setupExceptionPorts();
