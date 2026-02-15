@@ -231,7 +231,10 @@ void Macho::eventLoop() {
                    MACH_PORT_NULL);
     if (ret == MACH_RCV_TIMED_OUT) {
       int status = 0;
-      if (waitpid(m_pid, &status, WNOHANG) > 0) m_state = TargetState::STOPPED;
+      if (waitpid(m_pid, &status, WNOHANG) > 0) {
+        m_state = TargetState::EXITED;
+        std::cout << "Target exited with code " << status << '\n';
+      }
       continue;
     }
     assert(ret == MACH_MSG_SUCCESS && "Did not receive mach message");
@@ -301,7 +304,7 @@ kern_return_t catch_mach_exception_raise_state_identity(
   auto* newArmState = reinterpret_cast<arm_thread_state64_t*>(newState);
   memcpy(newArmState, oldArmState, sizeof(arm_thread_state64_t));
 
-  macho->setThreadPort(thread);
+  if (macho->getThreadPort() == 0) macho->setThreadPort(thread);
 
   if (exc == EXC_BAD_INSTRUCTION && *flavour == ARM_THREAD_STATE64) {
     printf("Fault at: %llu\n", oldArmState->__pc);
