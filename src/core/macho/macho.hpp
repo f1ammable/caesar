@@ -40,6 +40,7 @@ class Macho : public Target {
   mach_port_t& getThreadPort() { return m_thread_port; }
   void readAslrSlide();
   u64& getAslrSlide();
+  i32 restorePrevIns(u64 k);
 
  private:
   uint32_t m_magic = 0;
@@ -48,7 +49,6 @@ class Macho : public Target {
   task_t m_task = 0;
   mach_port_t m_exc_port = 0;
   mach_port_t m_thread_port = 0;
-  vm_offset_t m_prev_ins = 0;
   u64 m_aslr_slide = 0;
   static constexpr std::array<CpuTypeNames, 4> CPU_TYPE_NAMES = {
       {{.cpu_type = CPU_TYPE_I386, .cpu_name = "i386"},
@@ -58,7 +58,7 @@ class Macho : public Target {
 
   void readMagic() override;
   void is64() override;
-
+  
   void maybeSwapBytes();
 
   template <typename T>
