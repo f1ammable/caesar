@@ -3,15 +3,16 @@
 
 #include <sys/wait.h>
 
-#include <chrono>
 #include <core/context.hpp>
 #include <core/util.hpp>
 #include <iostream>
+#include <stdexcept>
 #include <string>
-#include <thread>
 #include <variant>
 
 #include "callable.hpp"
+#include "cmd/object.hpp"
+#include "core/macho/macho.hpp"
 #include "core/target.hpp"
 #include "error.hpp"
 #include "subcommand.hpp"
@@ -51,11 +52,48 @@ class BreakpointFn : public Callable {
   using sv = std::string_view;
   using FnPtr = Object (*)(const std::vector<std::string>&);
 
-  FnPtr l = [](const std::vector<std::string>& x) {
-    return Object{"test from subcommand!"};
+  FnPtr list = [](const std::vector<std::string>& args) -> Object {
+    auto& breakpoints =
+        Context::getInstance().getTarget()->getRegisteredBreakpoints();
+    std::string retStr{};
+
+    if (breakpoints.empty()) return "No breakpoints set!";
+
+    for (std::size_t i = 0; i < breakpoints.size(); i++) {
+      retStr += std::format("Breakpoint {} @ {} ({})\n", i, breakpoints[i].addr,
+                            breakpoints[i].enabled);
+    }
+
+    retStr.pop_back();
+    return retStr;
   };
 
-  SubcommandHandler m_subcmds{{{sv("list"), l}}, "breakpoint"};
+  FnPtr set = [](const std::vector<std::string>& args) -> Object {
+    auto* macho =
+        dynamic_cast<Macho*>(Context::getInstance().getTarget().get());
+    if (macho->getAslrSlide() == 0) macho->readAslrSlide();
+
+    u64 addr = 0;
+    try {
+      addr = static_cast<u64>(std::stoull(args[0], nullptr, 0));
+      auto& target = Context::getInstance().getTarget();
+      i32 res = target->setBreakpoint(addr);
+      if (res != 0)
+        return "Error setting breakpoint!\n";
+      else {
+        target->registerBreakpoint({.addr = addr, .enabled = true});
+        return std::format("Breakpoint set at: {}", toHex(addr));
+      }
+    } catch (std::invalid_argument& e) {
+      return std::format("Could not convert from argument {} to address!\n",
+                         args[0]);
+    } catch (std::out_of_range& e) {
+      return "Address provided is out of range!\n";
+    }
+  };
+
+  SubcommandHandler m_subcmds{{{sv("list"), list}, {sv("set"), set}},
+                              "breakpoint"};
 
   static std::vector<std::string> convertToStr(const std::vector<Object>& vec) {
     std::vector<std::string> res{};
@@ -82,6 +120,10 @@ class BreakpointFn : public Callable {
   }
 
   Object call(std::vector<Object> args) override {
+    if (Context::getInstance().getTarget() == nullptr) {
+      CoreError::error("Target is not running!");
+      return std::monostate{};
+    }
     std::vector<std::string> convertedArgs = BreakpointFn::convertToStr(args);
     if (convertedArgs.size() < 1) return std::monostate{};
     const std::string subcmd = convertedArgs.front();

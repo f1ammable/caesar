@@ -6,7 +6,10 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <format>
 #include <vector>
+
+#include "typedefs.hpp"
 
 template <typename T>
 struct SwapDescriptor {
@@ -154,5 +157,7 @@ struct CStringArray {
     ptrs.push_back(nullptr);
   }
 };
+
+inline std::string toHex(u64 addr) { return std::format("{:#018x}", addr); }
 
 #endif
