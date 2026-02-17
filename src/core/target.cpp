@@ -1,4 +1,5 @@
 #include "target.hpp"
+#include <mach/arm/vm_types.h>
 
 #include <memory>
 
@@ -53,10 +54,6 @@ void Target::startEventLoop() {
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
 }
 
-void Target::registerBreakpoint(const BreakpointInfo& bp) {
-  m_breakpoints.emplace_back(bp);
-}
-
-std::vector<BreakpointInfo>& Target::getRegisteredBreakpoints() {
+std::map<u64, Breakpoint>& Target::getRegisteredBreakpoints() {
   return m_breakpoints;
 }

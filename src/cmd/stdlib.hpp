@@ -59,9 +59,9 @@ class BreakpointFn : public Callable {
 
     if (breakpoints.empty()) return "No breakpoints set!";
 
-    for (std::size_t i = 0; i < breakpoints.size(); i++) {
-      retStr += std::format("Breakpoint {} @ {} ({})\n", i, breakpoints[i].addr,
-                            breakpoints[i].enabled);
+    for (const auto& [k, v] : breakpoints) {
+      retStr += std::format("Breakpoint @ {} ({})\n", toHex(k),
+                            breakpoints[k].enabled);
     }
 
     retStr.pop_back();
@@ -80,10 +80,8 @@ class BreakpointFn : public Callable {
       i32 res = target->setBreakpoint(addr);
       if (res != 0)
         return "Error setting breakpoint!\n";
-      else {
-        target->registerBreakpoint({.addr = addr, .enabled = true});
+      else
         return std::format("Breakpoint set at: {}", toHex(addr));
-      }
     } catch (std::invalid_argument& e) {
       return std::format("Could not convert from argument {} to address!\n",
                          args[0]);

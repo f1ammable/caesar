@@ -1,9 +1,12 @@
 #ifndef CAESAR_TARGET_H
 #define CAESAR_TARGET_H
 
+#include <mach/arm/vm_types.h>
+
 #include <atomic>
 #include <cstddef>
 #include <fstream>
+#include <map>
 #include <memory>
 #include <thread>
 
@@ -15,9 +18,9 @@ enum class BinaryType : std::uint8_t { MACHO, ELF, PE };
 enum class TargetError : std::uint8_t { FORK_FAIL };
 enum class ResumeType : std::uint8_t { RESUME };
 
-struct BreakpointInfo {
-  u64 addr;
+struct Breakpoint {
   bool enabled;
+  u32 orig_ins;
 };
 
 class Target {
@@ -30,7 +33,7 @@ class Target {
   i32 m_pid = 0;
   std::string m_file_path;
   std::jthread m_waiter;
-  std::vector<BreakpointInfo> m_breakpoints;
+  std::map<u64, Breakpoint> m_breakpoints;
 
   explicit Target(std::ifstream f, std::string filePath)
       : m_file(std::move(f)), m_file_path(std::move(filePath)) {}
@@ -56,8 +59,7 @@ class Target {
   std::atomic<TargetState>& getTargetState() { return m_state; }
   i32 pid() const { return m_pid; }
   void startEventLoop();
-  void registerBreakpoint(const BreakpointInfo& bp);
-  std::vector<BreakpointInfo>& getRegisteredBreakpoints();
+  std::map<u64, Breakpoint>& getRegisteredBreakpoints();
 
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);

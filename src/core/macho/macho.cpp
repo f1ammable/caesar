@@ -173,14 +173,17 @@ i32 Macho::attach() {
 i32 Macho::setBreakpoint(u64 addr) {
   u64 actual = addr + m_aslr_slide;
   auto sz = static_cast<mach_msg_type_number_t>(sizeof(u32));
-  // TODO: mach_vm_deallocate(m_prev_ins)
-  kern_return_t kr =
-      mach_vm_read(m_task, actual, sizeof(u32), &m_prev_ins, &sz);
+  vm_offset_t origBuf = 0;
+  kern_return_t kr = mach_vm_read(m_task, actual, sizeof(u32), &origBuf, &sz);
   if (kr != KERN_SUCCESS) {
     CoreError::error(
         std::format("Error reading memory: {}!\n", mach_error_string(kr)));
     return -1;
   }
+
+  u32 origIns = *reinterpret_cast<u32*>(origBuf);
+  mach_vm_deallocate(mach_task_self(), origBuf, sizeof(u32));
+  m_breakpoints[addr] = {.enabled = true, .orig_ins = origIns};
 
   // TODO: This is arm64 only
   // TODO: brk #0, switch to brk #1, #2... to distinguish different breakpoints
@@ -211,7 +214,7 @@ i32 Macho::setBreakpoint(u64 addr) {
   }
 
   return 0;
-};
+}
 
 void Macho::detach() { throw std::runtime_error("unimplemented"); }
 
@@ -352,13 +355,15 @@ kern_return_t catch_mach_exception_raise_state_identity(
   if (macho->getThreadPort() == 0) macho->setThreadPort(thread);
 
   if (exc == EXC_BAD_INSTRUCTION && *flavour == ARM_THREAD_STATE64) {
-    std::cout << std::format("Fault @ {}!\n", toHex(oldArmState->__pc));
+    std::cout << std::format("Fault @ {}!\n",
+                             toHex(oldArmState->__pc - macho->getAslrSlide()));
     newArmState->__pc += 4;
-    std::cout << std::format("Resuming @ {}\n", toHex(newArmState->__pc));
+    std::cout << std::format("Resuming @ {}\n",
+                             toHex(newArmState->__pc - macho->getAslrSlide()));
   }
 
   if (exc == EXC_BREAKPOINT) {
-    // TODO: restore original ins back
+    macho->restorePrevIns(oldArmState->__pc - macho->getAslrSlide());
   }
 
   *newStateCnt = oldStateCnt;
@@ -559,3 +564,36 @@ void Macho::readAslrSlideFromRegions() {
 }
 
 u64& Macho::getAslrSlide() { return m_aslr_slide; }
+
+i32 Macho::restorePrevIns(u64 k) {
+  u64 addr = k + m_aslr_slide;
+
+  kern_return_t kr =
+      mach_vm_protect(m_task, addr, sizeof(u32), FALSE,
+                      VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(std::format("Error changing memory protection: {}!\n",
+                                 mach_error_string(kr)));
+    return -1;
+  }
+
+  kr = mach_vm_write(m_task, addr,
+                     reinterpret_cast<vm_offset_t>(&m_breakpoints[k].orig_ins),
+                     sizeof(u32));
+
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(
+        std::format("mach_vm_write error in Macho::restorePrevIns(): {}\n",
+                    mach_error_string(kr)));
+    return -1;
+  }
+
+  kr = mach_vm_protect(m_task, addr, sizeof(u32), FALSE,
+                       VM_PROT_READ | VM_PROT_EXECUTE);
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(std::format("Error re-protecting memory: {}!\n",
+                                 mach_error_string(kr)));
+    return -1;
+  }
+  return 0;
+}
