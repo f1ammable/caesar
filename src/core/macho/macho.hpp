@@ -27,7 +27,7 @@ class Macho : public Target {
 
   void dumpHeader(int offset) override;
   i32 attach() override;
-  i32 setBreakpoint(u32 addr) override;
+  i32 setBreakpoint(u64 addr) override;
   i32 launch(CStringArray& argList) override;
   void detach() override;
   void eventLoop() override;
@@ -38,6 +38,8 @@ class Macho : public Target {
                                      mach_exception_data_t code);
   void setThreadPort(mach_port_t thread) { m_thread_port = thread; }
   mach_port_t& getThreadPort() { return m_thread_port; }
+  void readAslrSlide();
+  u64& getAslrSlide();
 
  private:
   uint32_t m_magic = 0;
@@ -46,6 +48,8 @@ class Macho : public Target {
   task_t m_task = 0;
   mach_port_t m_exc_port = 0;
   mach_port_t m_thread_port = 0;
+  vm_offset_t m_prev_ins = 0;
+  u64 m_aslr_slide = 0;
   static constexpr std::array<CpuTypeNames, 4> CPU_TYPE_NAMES = {
       {{.cpu_type = CPU_TYPE_I386, .cpu_name = "i386"},
        {.cpu_type = CPU_TYPE_X86_64, .cpu_name = "x86_64"},
@@ -70,6 +74,7 @@ class Macho : public Target {
   static std::string cpuTypeName(cpu_type_t cpuType);
   void dumpSections(uint32_t offset, uint32_t end);
   i32 setupExceptionPorts();
+  void readAslrSlideFromRegions();
   mach_port_t threadSelect();  // TODO: doesn't work (yet)
 };
 

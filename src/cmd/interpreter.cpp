@@ -39,7 +39,7 @@ void Interpreter::checkNumberOperand(const Token& op, const Object& operand) {
     if constexpr (std::is_same_v<T, double>) return;
 
     CmdError::error(op.m_type, "Operand must be a number",
-                 CmdErrorType::RUNTIME_ERROR);
+                    CmdErrorType::RUNTIME_ERROR);
   };
 
   std::visit(visitor, operand);
@@ -134,12 +134,12 @@ Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
   auto* fn = std::get_if<std::shared_ptr<Callable>>(&fnObj);
 
   if (fn != nullptr) {
-    if (argList.size() != fn->get()->arity()) {
-      CmdError::error(
-          stmnt.m_fn.m_type,
-          std::format("Function requires {} arguments but {} were provided",
-                      fn->get()->arity(), argList.size()),
-          CmdErrorType::RUNTIME_ERROR);
+    if (argList.size() < fn->get()->arity()) {
+      CmdError::error(stmnt.m_fn.m_type,
+                      std::format("Function requires at least {} arguments but "
+                                  "only {} were provided",
+                                  fn->get()->arity(), argList.size()),
+                      CmdErrorType::RUNTIME_ERROR);
       return std::monostate{};
     }
   }

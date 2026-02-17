@@ -2,10 +2,12 @@
 
 #include <architecture/byte_order.h>
 #include <libproc.h>
+#include <mach-o/dyld_images.h>
 #include <mach-o/loader.h>
 #include <mach-o/swap.h>
 #include <mach/arm/kern_return.h>
 #include <mach/arm/thread_status.h>
+#include <mach/arm/vm_types.h>
 #include <mach/exception_types.h>
 #include <mach/kern_return.h>
 #include <mach/mach.h>
@@ -15,14 +17,17 @@
 #include <mach/mach_port.h>
 #include <mach/mach_traps.h>
 #include <mach/mach_types.h>
+#include <mach/mach_vm.h>
 #include <mach/machine.h>
 #include <mach/message.h>
 #include <mach/mig_errors.h>
 #include <mach/port.h>
 #include <mach/task.h>
+#include <mach/task_info.h>
 #include <mach/thread_act.h>
 #include <mach/thread_special_ports.h>
 #include <mach/vm_map.h>
+#include <mach/vm_prot.h>
 #include <mach/vm_types.h>
 #include <spawn.h>
 #include <sys/proc_info.h>
@@ -164,8 +169,48 @@ i32 Macho::attach() {
   return res;
 };
 
-void Macho::setBreakpoint(u32 addr) {
-  throw std::runtime_error("unimplemented");
+// TODO: Make an overload with u32 for 32bit systems
+i32 Macho::setBreakpoint(u64 addr) {
+  u64 actual = addr + m_aslr_slide;
+  auto sz = static_cast<mach_msg_type_number_t>(sizeof(u32));
+  // TODO: mach_vm_deallocate(m_prev_ins)
+  kern_return_t kr =
+      mach_vm_read(m_task, actual, sizeof(u32), &m_prev_ins, &sz);
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(
+        std::format("Error reading memory: {}!\n", mach_error_string(kr)));
+    return -1;
+  }
+
+  // TODO: This is arm64 only
+  // TODO: brk #0, switch to brk #1, #2... to distinguish different breakpoints
+  u32 brk = 0xD4200000;
+
+  kr = mach_vm_protect(m_task, actual, sizeof(u32), FALSE,
+                       VM_PROT_READ | VM_PROT_WRITE | VM_PROT_COPY);
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(std::format("Error changing memory protection: {}!\n",
+                                 mach_error_string(kr)));
+    return -1;
+  }
+
+  kr = mach_vm_write(m_task, actual, reinterpret_cast<vm_offset_t>(&brk),
+                     sizeof(u32));
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(
+        std::format("Error writing memory: {}!\n", mach_error_string(kr)));
+    return -1;
+  }
+
+  kr = mach_vm_protect(m_task, actual, sizeof(u32), FALSE,
+                       VM_PROT_READ | VM_PROT_EXECUTE);
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(std::format("Error re-protecting memory: {}!\n",
+                                 mach_error_string(kr)));
+    return -1;
+  }
+
+  return 0;
 };
 
 void Macho::detach() { throw std::runtime_error("unimplemented"); }
@@ -294,20 +339,26 @@ kern_return_t catch_mach_exception_raise_state_identity(
 #pragma unused(newStateCnt)
   auto& target = Context::getInstance().getTarget();
   target->setTargetState(TargetState::STOPPED);
-
-  std::cout << Macho::exceptionReason(exc, codeCnt, code);
-
+  task_suspend(task);
   auto* macho = dynamic_cast<Macho*>(Context::getInstance().getTarget().get());
   auto* oldArmState = reinterpret_cast<arm_thread_state64_t*>(oldState);
   auto* newArmState = reinterpret_cast<arm_thread_state64_t*>(newState);
   memcpy(newArmState, oldArmState, sizeof(arm_thread_state64_t));
 
+  std::cout << Macho::exceptionReason(exc, codeCnt, code);
+  std::cout << std::format("PC @ {}\n",
+                           toHex(oldArmState->__pc - macho->getAslrSlide()));
+
   if (macho->getThreadPort() == 0) macho->setThreadPort(thread);
 
   if (exc == EXC_BAD_INSTRUCTION && *flavour == ARM_THREAD_STATE64) {
-    printf("Fault at: %llu\n", oldArmState->__pc);
+    std::cout << std::format("Fault @ {}!\n", toHex(oldArmState->__pc));
     newArmState->__pc += 4;
-    printf("Resume at: %llu\n", newArmState->__pc);
+    std::cout << std::format("Resuming @ {}\n", toHex(newArmState->__pc));
+  }
+
+  if (exc == EXC_BREAKPOINT) {
+    // TODO: restore original ins back
   }
 
   *newStateCnt = oldStateCnt;
@@ -349,6 +400,7 @@ void Macho::resume(ResumeType cond) {
              reinterpret_cast<caddr_t>(static_cast<uintptr_t>(m_thread_port)),
              0);
       ptrace(PT_CONTINUE, m_pid, reinterpret_cast<caddr_t>(1), 0);
+      task_resume(m_task);
       target->setTargetState(TargetState::RUNNING);
       break;
   }
@@ -425,3 +477,85 @@ std::string Macho::exceptionReason(exception_type_t exc,
 
   return reason;
 }
+
+void Macho::readAslrSlide() {
+  task_dyld_info_data_t dyldInfo;
+  mach_msg_type_number_t count = TASK_DYLD_INFO_COUNT;
+  kern_return_t kr = task_info(
+      m_task, TASK_DYLD_INFO, reinterpret_cast<task_info_t>(&dyldInfo), &count);
+
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(
+        std::format("task_info fail: {}!\n", mach_error_string(kr)));
+    return;
+  }
+
+  vm_offset_t infoBuf{};
+  auto sz = static_cast<mach_msg_type_number_t>(sizeof(dyld_all_image_infos));
+  kr = mach_vm_read(m_task, dyldInfo.all_image_info_addr,
+                    sizeof(dyld_all_image_infos), &infoBuf, &sz);
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(
+        std::format("mach_vm_read fail: {}!\n", mach_error_string(kr)));
+    return;
+  }
+  auto* imgInfos = reinterpret_cast<dyld_all_image_infos*>(infoBuf);
+
+  // When stopped early (e.g. at dyld_start), dyld hasn't populated the image
+  // info array yet. Fall back to scanning memory regions for the Mach-O header.
+  if (imgInfos->infoArrayCount == 0 || imgInfos->infoArray == nullptr) {
+    mach_vm_deallocate(mach_task_self(), infoBuf, sizeof(dyld_all_image_infos));
+    readAslrSlideFromRegions();
+    return;
+  }
+
+  vm_offset_t mainImgBuf{};
+  sz = static_cast<mach_msg_type_number_t>(sizeof(dyld_image_info));
+  kr = mach_vm_read(m_task,
+                    reinterpret_cast<mach_vm_address_t>(imgInfos->infoArray),
+                    sizeof(dyld_image_info), &mainImgBuf, &sz);
+  mach_vm_deallocate(mach_task_self(), infoBuf, sizeof(dyld_all_image_infos));
+  if (kr != KERN_SUCCESS) {
+    CoreError::error(
+        std::format("mach_vm_read fail: {}!\n", mach_error_string(kr)));
+    return;
+  }
+  auto* mainImg = reinterpret_cast<dyld_image_info*>(mainImgBuf);
+  m_aslr_slide = reinterpret_cast<u64>(mainImg->imageLoadAddress) - 0x100000000;
+  mach_vm_deallocate(mach_task_self(), mainImgBuf, sizeof(dyld_image_info));
+}
+
+void Macho::readAslrSlideFromRegions() {
+  mach_vm_address_t addr = 0;
+  mach_vm_size_t size = 0;
+  vm_region_basic_info_data_64_t info;
+  mach_msg_type_number_t infoCnt = VM_REGION_BASIC_INFO_COUNT_64;
+  mach_port_t objName = MACH_PORT_NULL;
+
+  while (true) {
+    kern_return_t kr = mach_vm_region(
+        m_task, &addr, &size, VM_REGION_BASIC_INFO_64,
+        reinterpret_cast<vm_region_info_t>(&info), &infoCnt, &objName);
+    if (kr != KERN_SUCCESS) break;
+
+    // Look for executable regions that could contain the main binary
+    if (info.protection & VM_PROT_EXECUTE) {
+      vm_offset_t headerBuf{};
+      auto sz = static_cast<mach_msg_type_number_t>(sizeof(u32));
+      kr = mach_vm_read(m_task, addr, sizeof(u32), &headerBuf, &sz);
+      if (kr == KERN_SUCCESS) {
+        u32 magic = *reinterpret_cast<u32*>(headerBuf);
+        mach_vm_deallocate(mach_task_self(), headerBuf, sizeof(u32));
+        if (magic == MH_MAGIC_64) {
+          m_aslr_slide = addr - 0x100000000;
+          return;
+        }
+      }
+    }
+    addr += size;
+  }
+
+  CoreError::error("Could not determine ASLR slide!\n");
+}
+
+u64& Macho::getAslrSlide() { return m_aslr_slide; }
