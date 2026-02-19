@@ -11,12 +11,10 @@
 #include "error.hpp"
 #include "object.hpp"
 #include "token_type.hpp"
+#include "typedefs.hpp"
 
 class SubcommandHandler {
  private:
-  using Func = std::function<Object(const std::vector<std::string>&)>;
-  using FnPtr = Object (*)(const std::vector<std::string>&);
-
   std::string_view m_callee;
   std::unordered_map<std::string_view, FnPtr> m_subcommands;
 
@@ -30,9 +28,9 @@ class SubcommandHandler {
     if (m_subcommands.contains(subcmd))
       return std::invoke(m_subcommands[subcmd], args);
     CmdError::error(TokenType::IDENTIFIER,
-                 std::format("Subcommand {} is not valid for {} command",
-                             subcmd, m_callee),
-                 CmdErrorType::RUNTIME_ERROR);
+                    std::format("Subcommand {} is not valid for {} command",
+                                subcmd, m_callee),
+                    CmdErrorType::RUNTIME_ERROR);
     return std::monostate{};
   }
 };

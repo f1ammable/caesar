@@ -165,7 +165,7 @@ i32 Macho::attach() {
   // http://uninformed.org/index.cgi?v=4&a=3&p=14
   i32 res = this->setupExceptionPorts();
   ptrace(PT_ATTACHEXC, m_pid, nullptr, 0);
-
+  this->readAslrSlide();
   return res;
 };
 
@@ -340,10 +340,10 @@ kern_return_t catch_mach_exception_raise_state_identity(
 #pragma unused(codeCnt)
 #pragma unused(newState)
 #pragma unused(newStateCnt)
-  auto& target = Context::getInstance().getTarget();
+  auto& target = Context::getTarget();
   target->setTargetState(TargetState::STOPPED);
   task_suspend(task);
-  auto* macho = dynamic_cast<Macho*>(Context::getInstance().getTarget().get());
+  auto* macho = dynamic_cast<Macho*>(Context::getTarget().get());
   auto* oldArmState = reinterpret_cast<arm_thread_state64_t*>(oldState);
   auto* newArmState = reinterpret_cast<arm_thread_state64_t*>(newState);
   memcpy(newArmState, oldArmState, sizeof(arm_thread_state64_t));
@@ -392,8 +392,6 @@ mach_port_t Macho::threadSelect() {
 }
 
 void Macho::resume(ResumeType cond) {
-  auto& target = Context::getInstance().getTarget();
-
   if (!m_started) {
     std::cerr << "Target is not running!\n";
     return;
@@ -406,7 +404,7 @@ void Macho::resume(ResumeType cond) {
              0);
       ptrace(PT_CONTINUE, m_pid, reinterpret_cast<caddr_t>(1), 0);
       task_resume(m_task);
-      target->setTargetState(TargetState::RUNNING);
+      this->setTargetState(TargetState::RUNNING);
       break;
   }
 }
@@ -599,16 +597,20 @@ i32 Macho::restorePrevIns(u64 k) {
 }
 
 i32 Macho::rmBreakpoint(u64 addr) {
+  i32 res = 0;
   auto bp = m_breakpoints[addr];
 
   if (!bp.enabled) return 0;
 
+  res = this->restorePrevIns(addr);
+  if (res != 0)
+    return -1;
   m_breakpoints.erase(addr);
-  return this->restorePrevIns(addr);
+  return 0;
 }
 
 i32 Macho::toggleBreakpoint(u64 addr) {
-  auto bp = m_breakpoints[addr];
+  auto& bp = m_breakpoints[addr];
 
   if (!bp.enabled) {
     bp.enabled = true;

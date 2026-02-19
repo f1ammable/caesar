@@ -5,11 +5,16 @@
 #include <format>
 #include <vector>
 
+#include "core/context.hpp"
+#include "core/target.hpp"
 #include "object.hpp"
 
 class Interpreter;
 
 class Callable {
+ protected:
+  std::unique_ptr<Target>& m_target = Context::getTarget();
+
  public:
   virtual ~Callable() = default;
   virtual Object call(std::vector<Object> args) = 0;

@@ -10,9 +10,8 @@
 class Context {
  private:
   Context() = default;
-  std::unique_ptr<Target> m_target = nullptr;
+  inline static std::unique_ptr<Target> mTarget;
 
-  // TODO: Handle endianness differences between platform and binary
  public:
   Context(const Context&) = delete;
   Context(Context&&) = delete;
@@ -24,8 +23,8 @@ class Context {
     return instance;
   }
 
-  std::unique_ptr<Target>& getTarget() { return m_target; }
-  void setTarget(std::unique_ptr<Target> ptr) { m_target = std::move(ptr); }
+  static std::unique_ptr<Target>& getTarget() { return mTarget; }
+  static void setTarget(std::unique_ptr<Target> ptr) { mTarget = std::move(ptr); }
 };
 
 #endif
