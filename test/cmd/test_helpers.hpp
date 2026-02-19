@@ -91,6 +91,11 @@ inline std::string captureStream(std::ostream& out, Func&& fn, Args&&... args) {
 inline Token makeToken(const std::string& name) {
   return Token(TokenType::IDENTIFIER, name, std::monostate{});
 }
+
+// Simple subcommand for testing
+inline Object testSubcmd(const std::vector<std::string>& args) {
+  return args.empty() ? std::string("ok") : args[0];
+}
 }  // namespace helpers
 
 #endif
