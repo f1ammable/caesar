@@ -94,29 +94,30 @@ class BreakpointFn : public Callable {
   FnPtr remove = [](const std::vector<std::string>& args) -> Object {
     u64 addr = strToAddr(args[0]);
     if (addr == -1)
-      return std::format("Could not convert from {} to address!\n", args[0]);
+      return std::format("Could not convert from {} to address!", args[0]);
     else if (addr == -2)
-      return "Address provided is out of range!\n";
+      return "Address provided is out of range!";
 
-    auto bp = Context::getInstance().getTarget()->getRegisteredBreakpoints();
-    if (!bp.contains(addr)) return std::format("No breakpoint at {}\n", addr);
-    i32 res = Context::getInstance().getTarget()->rmBreakpoint(addr);
-    if (res != 0) return "Error removing breakpoint!\n";
-    return std::format("Deleted breakpoint at {}\n", addr);
+    auto& bp = Context::getTarget()->getRegisteredBreakpoints();
+    if (!bp.contains(addr)) return std::format("No breakpoint at {}", addr);
+    i32 res = Context::getTarget()->rmBreakpoint(addr);
+    if (res != 0) return "Error removing breakpoint!";
+    return std::format("Deleted breakpoint at {}", toHex(addr));
   };
 
   FnPtr toggle = [](const std::vector<std::string>& args) -> Object {
     u64 addr = strToAddr(args[0]);
     if (addr == -1)
-      return std::format("Could not convert from {} to address!\n", args[0]);
+      return std::format("Could not convert from {} to address!", args[0]);
     else if (addr == -2)
-      return "Address provided is out of range!\n";
+      return "Address provided is out of range!";
 
-    auto bp = Context::getInstance().getTarget()->getRegisteredBreakpoints();
-    if (!bp.contains(addr)) return std::format("No breakpoint at {}\n", addr);
-    i32 res = Context::getInstance().getTarget()->toggleBreakpoint(addr);
-    if (res != 0) return "Error toggling breakpoint!\n";
-    return std::format("Toggled breakpoint at {}, now {}\n", addr,
+    auto& target = Context::getTarget();
+    auto& bp = target->getRegisteredBreakpoints();
+    if (!bp.contains(addr)) return std::format("No breakpoint at {}", addr);
+    i32 res = target->toggleBreakpoint(addr);
+    if (res != 0) return "Error toggling breakpoint!";
+    return std::format("Toggled breakpoint at {}, now {}", toHex(addr),
                        bp[addr].enabled);
   };
 
