@@ -94,6 +94,7 @@ if(CAESAR_BUILD_TESTS)
       test/cmd/test_object.cpp
       test/cmd/test_parser.cpp
       test/cmd/test_scanner.cpp
+      test/cmd/test_stdlib.cpp
       src/error.cpp
   )
 
