@@ -7,6 +7,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
+#include <iostream>
+#include <stdexcept>
 #include <vector>
 
 #include "typedefs.hpp"
@@ -159,5 +161,17 @@ struct CStringArray {
 };
 
 inline std::string toHex(u64 addr) { return std::format("{:#018x}", addr); }
+
+inline u64 strToAddr(const std::string& addr) {
+  u64 res = 0;
+  try {
+    res = static_cast<u64>(std::stoull(addr, nullptr, 0));
+    return res;
+  } catch (std::invalid_argument& e) {
+    return -1;
+  } catch (std::out_of_range& e) {
+    return -2;
+  }
+}
 
 #endif

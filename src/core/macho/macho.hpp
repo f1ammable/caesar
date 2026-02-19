@@ -28,6 +28,8 @@ class Macho : public Target {
   void dumpHeader(int offset) override;
   i32 attach() override;
   i32 setBreakpoint(u64 addr) override;
+  i32 rmBreakpoint(u64 addr) override;
+  i32 toggleBreakpoint(u64 addr) override;
   i32 launch(CStringArray& argList) override;
   void detach() override;
   void eventLoop() override;
