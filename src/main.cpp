@@ -71,7 +71,7 @@ void runFile(const std::string& filePath) {
   } else {
     if (Target::isFileValid(filePath)) {
       std::cout << std::format("Target set to {}\n", filePath);
-      Context::getInstance().setTarget(Target::create(filePath));
+      Context::setTarget(Target::create(filePath));
     } else
       // TODO: Add Mach-O FAT binary magic to Target::isFileValid
       std::cout << "Target is valid but cannot be ran on current platform!\n";
@@ -82,7 +82,7 @@ void runFile(const std::string& filePath) {
 
 int main(int argc, char** argv) {
   if (argc > 2) {
-    std::cout << std::format("Usage: {} [script]\n", argv[0]);
+    std::cout << std::format("Usage: {} [file]\n", argv[0]);
     return 64;
   } else if (argc == 2) {
     runFile(argv[1]);
@@ -91,22 +91,3 @@ int main(int argc, char** argv) {
   }
   return 0;
 }
-
-// int main(int argc, char** argv) {
-//   if (argc > 2) {
-//     std::cout << "Usage: caesar [file]" << std::endl;
-//     return 1;
-//   }
-//
-//   std::ifstream f(argv[1], std::ios::in | std::ios::binary);
-//
-//   if (f.fail()) {
-//     std::cout << "File does not exist" << std::endl;
-//     f.close();
-//     return 1;
-//   }
-//
-//   Macho m = Macho(f);
-//   m.dump();
-//   f.close();
-// }

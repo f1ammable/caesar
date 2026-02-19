@@ -6,13 +6,11 @@
 #include <core/context.hpp>
 #include <core/util.hpp>
 #include <iostream>
-#include <stdexcept>
 #include <string>
 #include <variant>
 
 #include "callable.hpp"
 #include "cmd/object.hpp"
-#include "core/macho/macho.hpp"
 #include "core/target.hpp"
 #include "error.hpp"
 #include "subcommand.hpp"
@@ -50,12 +48,10 @@ class PrintFn : public Callable {
 class BreakpointFn : public Callable {
  private:
   using sv = std::string_view;
-  using FnPtr = Object (*)(const std::vector<std::string>&);
 
   FnPtr list = [](const std::vector<std::string>& args) -> Object {
 #pragma unused(args)
-    auto& breakpoints =
-        Context::getInstance().getTarget()->getRegisteredBreakpoints();
+    auto& breakpoints = Context::getTarget()->getRegisteredBreakpoints();
     std::string retStr{};
 
     if (breakpoints.empty()) return "No breakpoints set!";
@@ -70,22 +66,17 @@ class BreakpointFn : public Callable {
   };
 
   FnPtr set = [](const std::vector<std::string>& args) -> Object {
-    auto* macho =
-        dynamic_cast<Macho*>(Context::getInstance().getTarget().get());
-    if (macho->getAslrSlide() == 0) macho->readAslrSlide();
-
     // TODO: This whole thing can be extracted but `Object` does not support
     // `u64`
     u64 addr = strToAddr(args[0]);
     if (addr == -1)
-      return std::format("Could not convert from {} to address!\n", args[0]);
+      return std::format("Could not convert from {} to address!", args[0]);
     else if (addr == -2)
-      return "Address provided is out of range!\n";
+      return "Address provided is out of range!";
 
-    auto& target = Context::getInstance().getTarget();
-    i32 res = target->setBreakpoint(addr);
+    i32 res = Context::getTarget()->setBreakpoint(addr);
     if (res != 0)
-      return "Error setting breakpoint!\n";
+      return "Error setting breakpoint!";
     else
       return std::format("Breakpoint set at: {}", toHex(addr));
   };
@@ -152,7 +143,7 @@ class BreakpointFn : public Callable {
   }
 
   Object call(std::vector<Object> args) override {
-    if (Context::getInstance().getTarget() == nullptr) {
+    if (m_target == nullptr) {
       CoreError::error("Target is not running!");
       return std::monostate{};
     }
@@ -209,25 +200,24 @@ class RunFn : public Callable {
 
   Object call(std::vector<Object> args) override {
     CStringArray argList = RunFn::concatElems(args);
-    auto& target = Context::getInstance().getTarget();
-    if (target == nullptr) {
+    if (m_target == nullptr) {
       std::cerr << "Error: Target is not set!\n";
       CmdError::getInstance().m_had_error = true;
       return std::monostate{};
     }
 
-    i32 pid = target->launch(argList);
+    i32 pid = m_target->launch(argList);
     if (pid >= 0)
       std::cout << std::format("Target started with pid {}\n", pid);
     else
       return "Unable to start target (are you running with sudo?)\n";
 
-    i32 res = target->attach();
+    i32 res = m_target->attach();
     if (res != 0) return "Could not attach to target!\n";
-    target->setTargetState(TargetState::RUNNING);
+    m_target->setTargetState(TargetState::RUNNING);
     // TODO: Reset this when target exits
-    target->m_started = true;
-    target->startEventLoop();
+    m_target->m_started = true;
+    m_target->startEventLoop();
 
     return std::monostate{};
   }
@@ -240,13 +230,13 @@ class ContinueFn : public Callable {
     return "<native fn: continue>";
   }
   Object call(std::vector<Object> args) override {
-    auto& target = Context::getInstance().getTarget();
-    if (target->getTargetState() != TargetState::STOPPED) {
+#pragma unused(args)
+    if (m_target->getTargetState() != TargetState::STOPPED) {
       std::cout << "Target still seems to think its running?\n";
       return std::monostate{};
     }
-    target->resume(ResumeType::RESUME);
-    target->startEventLoop();
+    m_target->resume(ResumeType::RESUME);
+    m_target->startEventLoop();
     return std::monostate{};
   }
 };
