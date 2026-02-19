@@ -321,9 +321,8 @@ TEST_CASE("Test visitCallStmnt - function argument mismatch errors",
       auto stmnt = helpers::getStmnt("print");
       interp.interpret(stmnt);
     });
-    REQUIRE(
-        captured.find("Function requires at least 1 arguments") !=
-        std::string::npos);
+    REQUIRE(captured.find("Function requires at least 1 arguments") !=
+            std::string::npos);
   }
 
   SECTION("Extra arguments are allowed for subcommand handling") {
@@ -356,4 +355,50 @@ TEST_CASE("Test multiple variables in expression",
   auto exprStmnt = helpers::getStmnt("avartest - bvartest");
   Object result = interp.interpret(exprStmnt);
   REQUIRE(result == Object{5.0});
+}
+
+TEST_CASE("Test unary minus on non-number produces error",
+          "[interpreter][unary][error]") {
+  Interpreter interp;
+
+  SECTION("Unary minus on string") {
+    auto stmnt = helpers::getStmnt("-\"hello\"");
+    auto captured = helpers::captureStream(std::cerr, [&interp, &stmnt]() {
+      Object result = interp.interpret(stmnt);
+      REQUIRE(result == Object{std::monostate{}});
+    });
+    REQUIRE(captured.find("Operand must be a number") != std::string::npos);
+  }
+
+  SECTION("Unary minus on boolean") {
+    auto stmnt = helpers::getStmnt("-true");
+    auto captured = helpers::captureStream(std::cerr, [&interp, &stmnt]() {
+      Object result = interp.interpret(stmnt);
+      REQUIRE(result == Object{std::monostate{}});
+    });
+    REQUIRE(captured.find("Operand must be a number") != std::string::npos);
+  }
+}
+
+TEST_CASE("Test calling non-callable with arguments produces error",
+          "[interpreter][visitCallStmnt][error]") {
+  Interpreter interp;
+  auto declStmnt = helpers::getStmnt("var notafunc = 42");
+  interp.interpret(declStmnt);
+
+  auto captured = helpers::captureStream(std::cerr, [&interp]() {
+    auto stmnt = helpers::getStmnt("notafunc \"arg\"");
+    interp.interpret(stmnt);
+  });
+  REQUIRE(captured.find("is not callable") != std::string::npos);
+}
+
+TEST_CASE("Test function call with unknown identifier as string argument",
+          "[interpreter][visitCallStmnt]") {
+  Interpreter interp;
+  // When an identifier is not defined, it's passed as a string literal
+  auto stmnt = helpers::getStmnt("len unknownident");
+  auto captured = helpers::captureStream(
+      std::cerr, [&interp, &stmnt]() { interp.interpret(stmnt); });
+  REQUIRE(captured.empty());
 }
