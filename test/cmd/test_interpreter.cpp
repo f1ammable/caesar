@@ -316,14 +316,20 @@ TEST_CASE("Test visitCallStmnt - function argument mismatch errors",
           "[interpreter][visitCallStmnt][error]") {
   Interpreter interp;
 
-  SECTION("Too many arguments to print") {
+  SECTION("Too few arguments to print") {
     auto captured = helpers::captureStream(std::cerr, [&interp]() {
-      auto stmnt = helpers::getStmnt("print 42 43");
+      auto stmnt = helpers::getStmnt("print");
       interp.interpret(stmnt);
     });
     REQUIRE(
-        captured.find("Function requires 1 arguments but 2 were provided") !=
+        captured.find("Function requires at least 1 arguments") !=
         std::string::npos);
+  }
+
+  SECTION("Extra arguments are allowed for subcommand handling") {
+    auto stmnt = helpers::getStmnt("print 42 43");
+    Object result = interp.interpret(stmnt);
+    REQUIRE(result == Object{42.0});
   }
 }
 

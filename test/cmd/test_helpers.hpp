@@ -35,8 +35,8 @@ inline std::unique_ptr<Stmnt> getStmnt(const std::string& input) {
 }
 
 template <typename EType>
-inline EType* getTopExpr(const std::unique_ptr<Stmnt>& p_stmnt) {
-  auto stmnt = dynamic_cast<ExprStmnt*>(p_stmnt.get());
+inline EType* getTopExpr(const std::unique_ptr<Stmnt>& pStmnt) {
+  auto *stmnt = dynamic_cast<ExprStmnt*>(pStmnt.get());
   REQUIRE(stmnt != nullptr);
 
   auto expr = dynamic_cast<EType*>(stmnt->m_expr.get());
@@ -71,10 +71,12 @@ class AutoRestoreRdbuf {
 
  public:
   ~AutoRestoreRdbuf() { out.rdbuf(old); }
+  AutoRestoreRdbuf& operator=(const AutoRestoreRdbuf&) = delete;
+  AutoRestoreRdbuf& operator=(AutoRestoreRdbuf&&) = delete;
   AutoRestoreRdbuf(const AutoRestoreRdbuf&) = delete;
   AutoRestoreRdbuf(AutoRestoreRdbuf&&) = delete;
 
-  AutoRestoreRdbuf(std::ostream& out) : out(out), old(out.rdbuf()) {}
+  explicit AutoRestoreRdbuf(std::ostream& out) : out(out), old(out.rdbuf()) {}
 };
 
 template <typename Func, typename... Args>

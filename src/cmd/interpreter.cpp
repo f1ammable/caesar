@@ -133,16 +133,24 @@ Object Interpreter::visitCallStmnt(const CallStmnt& stmnt) {
   Object fnObj = m_env.get(stmnt.m_fn);
   auto* fn = std::get_if<std::shared_ptr<Callable>>(&fnObj);
 
-  if (fn != nullptr) {
-    if (argList.size() < fn->get()->arity()) {
-      CmdError::error(stmnt.m_fn.m_type,
-                      std::format("Function requires at least {} arguments but "
-                                  "only {} were provided",
-                                  fn->get()->arity(), argList.size()),
-                      CmdErrorType::RUNTIME_ERROR);
-      return std::monostate{};
-    }
+  if (fn == nullptr) {
+    // Not a callable - if no args, just return the value
+    if (argList.empty()) return fnObj;
+    CmdError::error(stmnt.m_fn.m_type,
+                    std::format("'{}' is not callable", stmnt.m_fn.m_lexeme),
+                    CmdErrorType::RUNTIME_ERROR);
+    return std::monostate{};
   }
+
+  if (argList.size() < fn->get()->arity()) {
+    CmdError::error(stmnt.m_fn.m_type,
+                    std::format("Function requires at least {} arguments but "
+                                "only {} were provided",
+                                fn->get()->arity(), argList.size()),
+                    CmdErrorType::RUNTIME_ERROR);
+    return std::monostate{};
+  }
+
   return fn->get()->call(std::move(argList));
 }
 
