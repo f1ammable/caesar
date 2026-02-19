@@ -53,6 +53,7 @@ class BreakpointFn : public Callable {
   using FnPtr = Object (*)(const std::vector<std::string>&);
 
   FnPtr list = [](const std::vector<std::string>& args) -> Object {
+#pragma unused(args)
     auto& breakpoints =
         Context::getInstance().getTarget()->getRegisteredBreakpoints();
     std::string retStr{};
@@ -73,24 +74,56 @@ class BreakpointFn : public Callable {
         dynamic_cast<Macho*>(Context::getInstance().getTarget().get());
     if (macho->getAslrSlide() == 0) macho->readAslrSlide();
 
-    u64 addr = 0;
-    try {
-      addr = static_cast<u64>(std::stoull(args[0], nullptr, 0));
-      auto& target = Context::getInstance().getTarget();
-      i32 res = target->setBreakpoint(addr);
-      if (res != 0)
-        return "Error setting breakpoint!\n";
-      else
-        return std::format("Breakpoint set at: {}", toHex(addr));
-    } catch (std::invalid_argument& e) {
-      return std::format("Could not convert from argument {} to address!\n",
-                         args[0]);
-    } catch (std::out_of_range& e) {
+    // TODO: This whole thing can be extracted but `Object` does not support
+    // `u64`
+    u64 addr = strToAddr(args[0]);
+    if (addr == -1)
+      return std::format("Could not convert from {} to address!\n", args[0]);
+    else if (addr == -2)
       return "Address provided is out of range!\n";
-    }
+
+    auto& target = Context::getInstance().getTarget();
+    i32 res = target->setBreakpoint(addr);
+    if (res != 0)
+      return "Error setting breakpoint!\n";
+    else
+      return std::format("Breakpoint set at: {}", toHex(addr));
   };
 
-  SubcommandHandler m_subcmds{{{sv("list"), list}, {sv("set"), set}},
+  // TODO: Both of these can be combined into one but not quite sure how yet
+  FnPtr remove = [](const std::vector<std::string>& args) -> Object {
+    u64 addr = strToAddr(args[0]);
+    if (addr == -1)
+      return std::format("Could not convert from {} to address!\n", args[0]);
+    else if (addr == -2)
+      return "Address provided is out of range!\n";
+
+    auto bp = Context::getInstance().getTarget()->getRegisteredBreakpoints();
+    if (!bp.contains(addr)) return std::format("No breakpoint at {}\n", addr);
+    i32 res = Context::getInstance().getTarget()->rmBreakpoint(addr);
+    if (res != 0) return "Error removing breakpoint!\n";
+    return std::format("Deleted breakpoint at {}\n", addr);
+  };
+
+  FnPtr toggle = [](const std::vector<std::string>& args) -> Object {
+    u64 addr = strToAddr(args[0]);
+    if (addr == -1)
+      return std::format("Could not convert from {} to address!\n", args[0]);
+    else if (addr == -2)
+      return "Address provided is out of range!\n";
+
+    auto bp = Context::getInstance().getTarget()->getRegisteredBreakpoints();
+    if (!bp.contains(addr)) return std::format("No breakpoint at {}\n", addr);
+    i32 res = Context::getInstance().getTarget()->toggleBreakpoint(addr);
+    if (res != 0) return "Error toggling breakpoint!\n";
+    return std::format("Toggled breakpoint at {}, now {}\n", addr,
+                       bp[addr].enabled);
+  };
+
+  SubcommandHandler m_subcmds{{{sv("list"), list},
+                               {sv("set"), set},
+                               {sv("remove"), remove},
+                               {sv("toggle"), toggle}},
                               "breakpoint"};
 
   static std::vector<std::string> convertToStr(const std::vector<Object>& vec) {
