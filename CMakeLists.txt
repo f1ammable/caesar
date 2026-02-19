@@ -94,9 +94,14 @@ if(CAESAR_BUILD_TESTS)
       test/cmd/test_object.cpp
       test/cmd/test_parser.cpp
       test/cmd/test_scanner.cpp
+      src/error.cpp
   )
 
   target_link_libraries(caesar_test PRIVATE caesar_cmd caesar_core Catch2::Catch2WithMain)
+
+  if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    target_link_libraries(caesar_test PRIVATE caesar_macho)
+  endif()
 
   # Apply coverage flags to test executable if coverage is enabled
   if(ENABLE_COVERAGE)
