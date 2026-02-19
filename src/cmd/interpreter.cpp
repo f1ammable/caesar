@@ -32,17 +32,18 @@ bool Interpreter::isEqual(const Object& lhs, const Object& rhs) {
   return lhs == rhs;
 }
 
-void Interpreter::checkNumberOperand(const Token& op, const Object& operand) {
-  auto visitor = [&op](const auto& value) -> void {
+bool Interpreter::checkNumberOperand(const Token& op, const Object& operand) {
+  auto visitor = [&op](const auto& value) -> bool {
     using T = std::decay_t<decltype(value)>;
 
-    if constexpr (std::is_same_v<T, double>) return;
+    if constexpr (std::is_same_v<T, double>) return true;
 
     CmdError::error(op.m_type, "Operand must be a number",
                     CmdErrorType::RUNTIME_ERROR);
+    return false;
   };
 
-  std::visit(visitor, operand);
+  return std::visit(visitor, operand);
 }
 
 std::string Interpreter::stringify(const Object& object) {
@@ -70,7 +71,7 @@ Object Interpreter::visitUnaryExpr(const Unary& expr) {
     case TokenType::BANG:
       return !isTruthy(right);
     case TokenType::MINUS:
-      checkNumberOperand(expr.m_op, right);
+      if (!checkNumberOperand(expr.m_op, right)) return std::monostate{};
       return -(std::get<double>(right));
   }
 #pragma clang diagnostic pop
