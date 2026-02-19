@@ -2,6 +2,7 @@
 #include <catch2/generators/catch_generators.hpp>
 #include <cmd/environment.hpp>
 #include <cmd/object.hpp>
+#include <cmd/subcommand.hpp>
 #include <format>
 #include <variant>
 
@@ -166,5 +167,23 @@ TEST_CASE("Test environment type transitions", "[environment][types]") {
     env.assign(helpers::makeToken("test_type_var"), Object{std::monostate{}});
     Object result = env.get(helpers::makeToken("test_type_var"));
     REQUIRE(std::holds_alternative<std::monostate>(result));
+  }
+}
+
+TEST_CASE("Test SubcommandHandler exec", "[subcommand][exec]") {
+  SubcommandHandler handler({{"test", helpers::testSubcmd}}, "testcmd");
+
+  SECTION("Execute valid subcommand") {
+    Object result = handler.exec("test", {"hello"});
+    REQUIRE(std::get<std::string>(result) == "hello");
+  }
+
+  SECTION("Execute invalid subcommand produces error") {
+    auto captured = helpers::captureStream(std::cerr, [&handler]() {
+      Object result = handler.exec("invalid", {});
+      REQUIRE(std::holds_alternative<std::monostate>(result));
+    });
+    REQUIRE(captured.find("Subcommand invalid is not valid") !=
+            std::string::npos);
   }
 }
