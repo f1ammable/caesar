@@ -15,7 +15,7 @@ class Interpreter : public IExprVisitor, IStmntVisitor {
   Object evaluate(const std::unique_ptr<Expr>& expr);
   static bool isTruthy(const Object& object);
   static bool isEqual(const Object& lhs, const Object& rhs);
-  static void checkNumberOperand(const Token& op, const Object& operand);
+  static bool checkNumberOperand(const Token& op, const Object& operand);
   Object execute(const std::unique_ptr<Stmnt>& stmnt);
 
  public:
