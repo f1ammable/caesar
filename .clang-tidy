@@ -87,7 +87,7 @@ CheckOptions:
    value: true
 
 # Exclude third-party code and build artifacts
-HeaderFilterRegex: '^.*/(src|test)/.*\.(h|hpp)$'
+HeaderFilterRegex: '^.*/(src|test)/(?!.*mach_exc).*\.(h|hpp)$'
 
 # Suppress warnings from system headers
 SystemHeaders: false
