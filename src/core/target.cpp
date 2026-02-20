@@ -40,8 +40,6 @@ bool Target::isFileValid(const std::string& filePath) {
   f.seekg(0, std::ios::beg);
   f.read(std::bit_cast<char*>(&magicRead), sizeof(u32));
 
-  // TODO: Return some sort of error message
-
   // Unsupported file
   if (!magics.contains(magicRead)) return false;
 
@@ -52,6 +50,7 @@ void Target::startEventLoop() {
   m_waiter = std::jthread(&Target::eventLoop, this);
   while (m_state == TargetState::RUNNING)
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  if (m_waiter.joinable()) m_waiter.join();
 }
 
 std::map<u64, Breakpoint>& Target::getRegisteredBreakpoints() {
