@@ -57,7 +57,7 @@ extern "C" {
 // Adapted from https://lowlevelbits.org/parsing-mach-o-files/
 
 void Macho::readMagic() {
-  uint32_t magic = 0;
+  u32 magic = 0;
   m_file.seekg(0, std::ios::beg);
   m_file.read(std::bit_cast<char*>(&magic), sizeof(uint32_t));
   m_magic = magic;
@@ -90,7 +90,7 @@ void Macho::dumpHeader(int offset) {
 }
 
 void Macho::dumpSegmentCommands(int offset, uint32_t ncmds) {
-  uint32_t actualOffset = offset;
+  u32 actualOffset = offset;
   for (int i = 0; i < ncmds; i++) {
     auto cmd = loadBytesAndMaybeSwap<load_command>(actualOffset);
     if (cmd.cmd == LC_SEGMENT_64) {
@@ -116,7 +116,7 @@ std::string Macho::cpuTypeName(cpu_type_t cpuType) {
 }
 
 void Macho::dumpSections(uint32_t offset, uint32_t end) {
-  uint32_t actualOffset = offset;
+  u32 actualOffset = offset;
   while (actualOffset != end) {
     auto section = loadBytesAndMaybeSwap<section_64>(actualOffset);
     std::cout << std::format("Section: {}; Address: 0x{:x}", section.sectname,
@@ -280,9 +280,10 @@ void Macho::eventLoop() {
       if (waitpid(m_pid, &status, WNOHANG) > 0) {
         m_state = TargetState::EXITED;
         if (WIFEXITED(status))
-          std::cout << "Target exited with code " << WEXITSTATUS(status) << '\n';
+          std::cout << "Target exited with code " << WEXITSTATUS(status)
+                    << '\n';
         else if (WIFSIGNALED(status))
-            std::cout << "Target killed with signal " << WTERMSIG(status) << '\n'; 
+          std::cout << "Target killed with signal " << WTERMSIG(status) << '\n';
       }
       continue;
     }

@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <format>
-#include <iostream>
 #include <stdexcept>
 #include <vector>
 
@@ -21,7 +20,7 @@ struct SwapDescriptor {
                   "Struct size must be multiple of 4 bytes");
 
     auto* fields = reinterpret_cast<uint32_t*>(ptr);
-    constexpr size_t numFields = sizeof(T) / sizeof(uint32_t);
+    constexpr size_t numFields = sizeof(T) / sizeof(u32);
 
     // TODO: Compiler builtin, make this more platform agnostic
     for (size_t i = 0; i < numFields; i++) {
