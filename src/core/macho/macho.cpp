@@ -596,27 +596,18 @@ i32 Macho::restorePrevIns(u64 k) {
   return 0;
 }
 
-i32 Macho::rmBreakpoint(u64 addr) {
-  i32 res = 0;
-  auto bp = m_breakpoints[addr];
+i32 Macho::disableBreakpoint(u64 addr, bool remove) {
+  auto& bp = m_breakpoints[addr];
 
   if (!bp.enabled) return 0;
 
-  res = this->restorePrevIns(addr);
-  if (res != 0)
-    return -1;
-  m_breakpoints.erase(addr);
+  i32 res = this->restorePrevIns(addr);
+  if (res != 0) return 1;
+
+  if (remove)
+    m_breakpoints.erase(addr);
+  else
+    bp.enabled = false;
+
   return 0;
-}
-
-i32 Macho::toggleBreakpoint(u64 addr) {
-  auto& bp = m_breakpoints[addr];
-
-  if (!bp.enabled) {
-    bp.enabled = true;
-    return this->setBreakpoint(addr);
-  }
-
-  bp.enabled = false;
-  return this->restorePrevIns(addr);
 }

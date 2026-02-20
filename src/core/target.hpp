@@ -51,6 +51,7 @@ class Target {
   virtual i32 attach() = 0;
   virtual i32 setBreakpoint(u64 addr) = 0;
   virtual i32 rmBreakpoint(u64 addr) = 0;
+  virtual i32 disableBreakpoint(u64 addr, bool remove) = 0;
   virtual i32 toggleBreakpoint(u64 addr) = 0;
   virtual i32 launch(CStringArray& argList) = 0;
   virtual void detach() = 0;
