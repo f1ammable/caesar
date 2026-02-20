@@ -279,7 +279,10 @@ void Macho::eventLoop() {
       int status = 0;
       if (waitpid(m_pid, &status, WNOHANG) > 0) {
         m_state = TargetState::EXITED;
-        std::cout << "Target exited with code " << status << '\n';
+        if (WIFEXITED(status))
+          std::cout << "Target exited with code " << WEXITSTATUS(status) << '\n';
+        else if (WIFSIGNALED(status))
+            std::cout << "Target killed with signal " << WTERMSIG(status) << '\n'; 
       }
       continue;
     }
