@@ -13,6 +13,7 @@
 #include "cmd/object.hpp"
 #include "core/target.hpp"
 #include "error.hpp"
+#include "expected.hpp"
 #include "subcommand.hpp"
 #include "token_type.hpp"
 
@@ -51,11 +52,9 @@ class BreakpointFn : public Callable {
 
   static Object rmOrToggleBreakpoint(const std::vector<std::string>& args,
                                      bool toggle = false) {
-    u64 addr = strToAddr(args[0]);
-    if (addr == -1)
-      return std::format("Could not convert from {} to address!", args[0]);
-    else if (addr == -2)
-      return "Address provided is out of range!";
+    Expected<u64, std::string> addrRes = strToAddr(args[0]);
+    if (!addrRes) return addrRes.error();
+    u64 addr = *addrRes;
 
     auto& target = Context::getTarget();
     auto& bps = target->getRegisteredBreakpoints();
@@ -91,16 +90,12 @@ class BreakpointFn : public Callable {
   };
 
   FnPtr set = [](const std::vector<std::string>& args) -> Object {
-    // TODO: This whole thing can be extracted but `Object` does not support
-    // `u64`
-    u64 addr = strToAddr(args[0]);
-    if (addr == -1)
-      return std::format("Could not convert from {} to address!", args[0]);
-    else if (addr == -2)
-      return "Address provided is out of range!";
+    Expected<u64, std::string> addrRes = strToAddr(args[0]);
+    if (!addrRes) return addrRes.error();
+    u64 addr = *addrRes;
 
-    i32 res = Context::getTarget()->setBreakpoint(addr);
-    if (res != 0)
+    i32 bpRes = Context::getTarget()->setBreakpoint(addr);
+    if (bpRes != 0)
       return "Error setting breakpoint!";
     else
       return std::format("Breakpoint set at: {}", toHex(addr));
