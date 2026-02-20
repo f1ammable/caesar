@@ -11,12 +11,12 @@ class Scanner {
  private:
   const std::string m_source;
   std::vector<Token> m_tokens;
-  int m_start = 0;
-  int m_current = 0;
   std::map<std::string, TokenType> m_keywords = {{"false", TokenType::BOOL_FALSE},
                                                  {"nil", TokenType::NIL},
                                                  {"true", TokenType::BOOL_TRUE},
                                                  {"var", TokenType::VAR}};
+  int m_start = 0;
+  int m_current = 0;
 
   [[nodiscard]] bool isAtEnd() const;
   void scanToken();

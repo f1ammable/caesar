@@ -44,13 +44,13 @@ class Macho : public Target {
   i32 restorePrevIns(u64 k);
 
  private:
-  uint32_t m_magic = 0;
-  bool m_is_64 = false;
-  bool m_is_swap = false;
   task_t m_task = 0;
+  u64 m_aslr_slide = 0;
+  uint32_t m_magic = 0;
   mach_port_t m_exc_port = 0;
   mach_port_t m_thread_port = 0;
-  u64 m_aslr_slide = 0;
+  bool m_is_64 = false;
+  bool m_is_swap = false;
   static constexpr std::array<CpuTypeNames, 4> CPU_TYPE_NAMES = {
       {{.cpu_type = CPU_TYPE_I386, .cpu_name = "i386"},
        {.cpu_type = CPU_TYPE_X86_64, .cpu_name = "x86_64"},
