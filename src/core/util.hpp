@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <vector>
 
+#include "expected.hpp"
 #include "typedefs.hpp"
 
 template <typename T>
@@ -162,15 +163,16 @@ struct CStringArray {
 
 inline std::string toHex(u64 addr) { return std::format("{:#018x}", addr); }
 
-inline u64 strToAddr(const std::string& addr) {
+inline Expected<u64, std::string> strToAddr(const std::string& addr) {
   u64 res = 0;
   try {
     res = static_cast<u64>(std::stoull(addr, nullptr, 0));
     return res;
   } catch (std::invalid_argument& e) {
-    return -1;
+    return Unexpected{
+        std::format("Could not convert from {} to address!", addr)};
   } catch (std::out_of_range& e) {
-    return -2;
+    return Unexpected{"Address provided is out of range!"};
   }
 }
 
