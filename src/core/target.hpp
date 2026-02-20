@@ -19,8 +19,8 @@ enum class TargetError : std::uint8_t { FORK_FAIL };
 enum class ResumeType : std::uint8_t { RESUME };
 
 struct Breakpoint {
-  bool enabled;
   u32 orig_ins;
+  bool enabled;
 };
 
 class Target {
@@ -29,11 +29,11 @@ class Target {
 
  protected:
   std::ifstream m_file;
-  std::atomic<TargetState> m_state = TargetState::STOPPED;
-  i32 m_pid = 0;
   std::string m_file_path;
   std::jthread m_waiter;
   std::map<u64, Breakpoint> m_breakpoints;
+  i32 m_pid = 0;
+  std::atomic<TargetState> m_state = TargetState::STOPPED;
 
   explicit Target(std::ifstream f, std::string filePath)
       : m_file(std::move(f)), m_file_path(std::move(filePath)) {}

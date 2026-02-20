@@ -183,7 +183,7 @@ i32 Macho::setBreakpoint(u64 addr) {
 
   u32 origIns = *reinterpret_cast<u32*>(origBuf);
   mach_vm_deallocate(mach_task_self(), origBuf, sizeof(u32));
-  m_breakpoints[addr] = {.enabled = true, .orig_ins = origIns};
+  m_breakpoints[addr] = {.orig_ins = origIns, .enabled = true};
 
   // TODO: This is arm64 only
   // TODO: brk #0, switch to brk #1, #2... to distinguish different breakpoints
