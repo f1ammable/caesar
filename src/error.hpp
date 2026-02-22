@@ -1,6 +1,5 @@
 #ifndef CMD_ERROR_H
 #define CMD_ERROR_H
-#include <mach/arm/kern_return.h>
 
 #include <cstdint>
 #include <format>
