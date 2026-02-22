@@ -1,7 +1,11 @@
 #ifndef CAESAR_UTIL_HPP
 #define CAESAR_UTIL_HPP
 
+#ifdef __APPLE__
+
 #include <mach-o/loader.h>
+
+#endif
 
 #include <array>
 #include <cstddef>
