@@ -42,6 +42,13 @@ Run the debugger without arguments to enter interactive mode:
 
 This starts a REPL where you can enter expressions and commands.
 
+Alternatively, run with a file to automatically set a target upon startup:
+
+```bash
+./caesar (file)
+```
+
+
 ### Development Environment
 
 The project includes a development setup script:
@@ -50,7 +57,7 @@ The project includes a development setup script:
 ./start.sh
 ```
 
-This creates a tmux session with editor, compiler, and miscellaneous panes for efficient development. This is my preffered environment, feel free to use or adapt it to your own needs.
+This creates a tmux session with editor, compiler, and miscellaneous panes for efficient development. This is my preferred environment, feel free to use or adapt it to your own needs.
 
 ## Components
 
@@ -58,7 +65,13 @@ This creates a tmux session with editor, compiler, and miscellaneous panes for e
 - **Scanner**: Tokenizes input expressions
 - **Parser**: Builds abstract syntax trees from tokens  
 - **Interpreter**: Evaluates expressions with support for literals, grouping, unary and binary operations
-- **AST Printer**: Debug utility for visualizing abstract syntax trees
+- **Built-in Functions**: Native commands for debugging (breakpoint, run, resume, etc.)
+
+### Core Debugging Engine
+- **Target**: Process control, breakpoint management, and binary inspection
+- **Macho**: Mach-O parser supporting 64-bit architectures and byte swapping
+- **Exception Ports**: Mach-based exception handling for traps and signals
+- **ASLR**: Automatic slide detection for address resolution
 
 ## Project Status
 
