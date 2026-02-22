@@ -1,8 +1,6 @@
 #ifndef CAESAR_TARGET_H
 #define CAESAR_TARGET_H
 
-#include <mach/arm/vm_types.h>
-
 #include <atomic>
 #include <cstddef>
 #include <fstream>
