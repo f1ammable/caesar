@@ -56,3 +56,12 @@ void Target::startEventLoop() {
 std::map<u64, Breakpoint>& Target::getRegisteredBreakpoints() {
   return m_breakpoints;
 }
+
+std::string Target::getInfo() {
+  std::string res{};
+
+  res += std::format("Target: {} \n", m_file_path);
+  res += std::format("Type: {}, Architecure: {}", getTargetType(),
+                     m_is_64 ? "64-bit" : "32-bit");
+  return res;
+}

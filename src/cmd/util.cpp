@@ -46,3 +46,21 @@ double detail::parseNumber(const std::string& str) {
         std::format("Cannot parse {} as number\n", str));
   }
 }
+
+std::vector<std::string> detail::convertToStr(const std::vector<Object>& vec) {
+  std::vector<std::string> res{};
+  res.reserve(vec.size());
+
+  for (const auto& x : vec) {
+    const auto* const str = std::get_if<std::string>(&x);
+    if (str == nullptr) {
+      CmdError::error(TokenType::IDENTIFIER,
+                      "Please provide all arguments as strings",
+                      CmdErrorType::RUNTIME_ERROR);
+      return {};  // Return empty on error, not partial
+    }
+    res.emplace_back(*str);
+  }
+
+  return res;
+}

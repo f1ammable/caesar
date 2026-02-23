@@ -49,7 +49,6 @@ class Macho : public Target {
   u32 m_magic = 0;
   mach_port_t m_exc_port = 0;
   mach_port_t m_thread_port = 0;
-  bool m_is_64 = false;
   bool m_is_swap = false;
   static constexpr std::array<CpuTypeNames, 4> CPU_TYPE_NAMES = {
       {{.cpu_type = CPU_TYPE_I386, .cpu_name = "i386"},

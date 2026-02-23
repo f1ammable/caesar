@@ -11,5 +11,6 @@ using i64 = std::int64_t;
 using u64 = std::uint64_t;
 using MagicBytes = std::array<std::byte, 4>;
 using FnPtr = Object (*)(const std::vector<std::string>&);
+using sv = std::string_view;
 
 #endif

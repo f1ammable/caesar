@@ -11,11 +11,13 @@
 
 #include "callable.hpp"
 #include "cmd/object.hpp"
+#include "cmd/util.hpp"
 #include "core/target.hpp"
 #include "error.hpp"
 #include "expected.hpp"
 #include "subcommand.hpp"
 #include "token_type.hpp"
+#include "typedefs.hpp"
 
 class LenFn : public Callable {
  public:
@@ -48,8 +50,6 @@ class PrintFn : public Callable {
 
 class BreakpointFn : public Callable {
  private:
-  using sv = std::string_view;
-
   static Object rmOrToggleBreakpoint(const std::vector<std::string>& args,
                                      bool toggle = false) {
     Expected<u64, std::string> addrRes = strToAddr(args[0]);
@@ -115,24 +115,6 @@ class BreakpointFn : public Callable {
                                {sv("toggle"), toggle}},
                               "breakpoint"};
 
-  static std::vector<std::string> convertToStr(const std::vector<Object>& vec) {
-    std::vector<std::string> res{};
-    res.reserve(vec.size());
-
-    for (const auto& x : vec) {
-      const auto* const str = std::get_if<std::string>(&x);
-      if (str == nullptr) {
-        CmdError::error(TokenType::IDENTIFIER,
-                        "Please provide all arguments as strings",
-                        CmdErrorType::RUNTIME_ERROR);
-        return {};  // Return empty on error, not partial
-      }
-      res.emplace_back(*str);
-    }
-
-    return res;
-  }
-
  public:
   [[nodiscard]] int arity() const override { return 1; }
   [[nodiscard]] std::string str() const override {
@@ -144,7 +126,7 @@ class BreakpointFn : public Callable {
       CoreError::error("Target is not running!");
       return std::monostate{};
     }
-    std::vector<std::string> convertedArgs = BreakpointFn::convertToStr(args);
+    std::vector<std::string> convertedArgs = detail::convertToStr(args);
     if (convertedArgs.size() < 1) return std::monostate{};
     const std::string subcmd = convertedArgs.front();
     convertedArgs.erase(convertedArgs.begin());
@@ -235,6 +217,32 @@ class ContinueFn : public Callable {
     m_target->resume(ResumeType::RESUME);
     m_target->startEventLoop();
     return std::monostate{};
+  }
+};
+
+class TargetFn : public Callable {
+ private:
+  FnPtr info = [](const std::vector<std::string>& args) -> Object {
+#pragma unused(args)
+    auto& target = Context::getTarget();
+    if (!target) return "Target not set!\n";
+    return target->getInfo();
+  };
+
+  SubcommandHandler m_subcmds{{{sv("info"), info}}, "target"};
+
+ public:
+  [[nodiscard]] int arity() const override { return 1; }
+  [[nodiscard]] std::string str() const override {
+    return "<native fn: target>";
+  }
+
+  Object call(std::vector<Object> args) override {
+    std::vector<std::string> convertedArgs = detail::convertToStr(args);
+    if (convertedArgs.size() < 1) return std::monostate{};
+    const std::string subcmd = convertedArgs.front();
+    convertedArgs.erase(convertedArgs.begin());
+    return m_subcmds.exec(subcmd, convertedArgs);
   }
 };
 

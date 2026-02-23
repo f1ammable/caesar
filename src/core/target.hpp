@@ -32,6 +32,7 @@ class Target {
   std::map<u64, Breakpoint> m_breakpoints;
   i32 m_pid = 0;
   std::atomic<TargetState> m_state = TargetState::STOPPED;
+  bool m_is_64 = false;
 
   explicit Target(std::ifstream f, std::string filePath)
       : m_file(std::move(f)), m_file_path(std::move(filePath)) {}
@@ -59,6 +60,7 @@ class Target {
   i32 pid() const { return m_pid; }
   void startEventLoop();
   std::map<u64, Breakpoint>& getRegisteredBreakpoints();
+  std::string getInfo();
 
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);

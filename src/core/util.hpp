@@ -179,4 +179,16 @@ inline Expected<u64, std::string> strToAddr(const std::string& addr) {
   }
 }
 
+consteval std::string_view getTargetType() {
+  constexpr PlatformType p = getPlatform();
+  switch (p) {
+    case PlatformType::MACH:
+      return "Mach-O";
+    case PlatformType::LINUX:
+      return "ELF";
+    case PlatformType::WIN:
+      return "PE";
+  }
+}
+
 #endif
