@@ -3,7 +3,9 @@
 #include <memory>
 
 #include "core/util.hpp"
+#ifdef __APPLE__
 #include "macho/macho.hpp"
+#endif
 
 consteval u32 Target::byteArrayToInt(const MagicBytes& bytes) {
   return (std::to_integer<u32>(bytes[3]) << 24) |
@@ -13,11 +15,10 @@ consteval u32 Target::byteArrayToInt(const MagicBytes& bytes) {
 }
 
 std::unique_ptr<Target> Target::create(const std::string& path) {
-  switch (getPlatform()) {
-    case PlatformType::MACH:
-      auto p = std::make_unique<Macho>(std::ifstream(path), path);
-      return p;
-  }
+#ifdef __APPLE__
+  return std::make_unique<Macho>(std::ifstream(path), path);
+#endif
+  return nullptr;
 }
 
 bool Target::isFileValid(const std::string& filePath) {
