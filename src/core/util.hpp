@@ -129,7 +129,7 @@ struct SwapDescriptor<section_64> {
 #endif
 
 enum class PlatformType : std::uint8_t { MACH, LINUX, WIN, UNSUPPORTED };
-consteval static PlatformType getPlatform() {
+constexpr static PlatformType getPlatform() {
   PlatformType t = PlatformType::UNSUPPORTED;
 #if defined(__APPLE__)
   t = PlatformType::MACH;
@@ -179,7 +179,7 @@ inline Expected<u64, std::string> strToAddr(const std::string& addr) {
   }
 }
 
-consteval std::string_view getTargetType() {
+constexpr std::string_view getTargetType() {
   constexpr PlatformType p = getPlatform();
   switch (p) {
     case PlatformType::MACH:

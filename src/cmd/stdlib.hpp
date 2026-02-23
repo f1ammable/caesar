@@ -225,11 +225,27 @@ class TargetFn : public Callable {
   FnPtr info = [](const std::vector<std::string>& args) -> Object {
 #pragma unused(args)
     auto& target = Context::getTarget();
-    if (!target) return "Target not set!\n";
+    if (!target) return "Target not set!";
     return target->getInfo();
   };
 
-  SubcommandHandler m_subcmds{{{sv("info"), info}}, "target"};
+  FnPtr set = [](const std::vector<std::string>& args) -> Object {
+    auto& target = Context::getTarget();
+    if (target) {
+      if (target->getTargetState() == TargetState::RUNNING ||
+          target->getTargetState() == TargetState::STOPPED)
+        return "Cannot set new target whilst one is running!";
+    }
+
+    if (Target::isFileValid(args[0])) {
+      Context::setTarget(Target::create(args[0]));
+      return std::format("Target: {}", args[0]);
+    }
+
+    return std::format("{} is not a valid target path!", args[0]);
+  };
+
+  SubcommandHandler m_subcmds{{{sv("info"), info}, {sv("set"), set}}, "target"};
 
  public:
   [[nodiscard]] int arity() const override { return 1; }
