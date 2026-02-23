@@ -31,15 +31,16 @@ inline Object binaryOperation(const Object& lhs, const Object& rhs, Op op,
       if constexpr (std::is_same_v<Op, std::plus<>>) {
         return left + right;
       } else {
-        CmdError::error(TokenType::STRING,
-                     std::format("Cannot apply operator {} to strings", opName),
-                     CmdErrorType::RUNTIME_ERROR);
+        CmdError::error(
+            TokenType::STRING,
+            std::format("Cannot apply operator {} to strings", opName),
+            CmdErrorType::RUNTIME_ERROR);
         return std::monostate{};
       }
     } else {
       CmdError::error(TokenType::STRING,
-                   std::format("Unsupported operand types for {}", opName),
-                   CmdErrorType::RUNTIME_ERROR);
+                      std::format("Unsupported operand types for {}", opName),
+                      CmdErrorType::RUNTIME_ERROR);
       return std::monostate{};
     }
   };

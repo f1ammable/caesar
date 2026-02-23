@@ -90,7 +90,8 @@ std::unique_ptr<Expr> Parser::primary() {
     return std::make_unique<Grouping>(std::move(e));
   }
 
-  CmdError::error(peek().m_type, "Expected expression.", CmdErrorType::PARSE_ERROR);
+  CmdError::error(peek().m_type, "Expected expression.",
+                  CmdErrorType::PARSE_ERROR);
   return nullptr;
 }
 
@@ -179,7 +180,7 @@ std::unique_ptr<Expr> Parser::assignment() {
     }
 
     CmdError::error(equals.m_type, "Invalid assignment target.",
-                 CmdErrorType::PARSE_ERROR);
+                    CmdErrorType::PARSE_ERROR);
   }
 
   return expr;

@@ -59,7 +59,7 @@ class Macho : public Target {
 
   void readMagic() override;
   void is64() override;
-  
+
   void maybeSwapBytes();
 
   template <typename T>
