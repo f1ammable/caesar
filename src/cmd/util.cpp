@@ -1,5 +1,6 @@
 #include "util.hpp"
 
+#include <format>
 #include <iostream>
 
 bool detail::isop(const char c) {
