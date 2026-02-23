@@ -11,9 +11,10 @@
 void Environment::define(const std::string& name, Object value) {
   if (m_values.contains(name))
     if (auto* ptr = std::get_if<std::shared_ptr<Callable>>(&m_values[name])) {
-      CmdError::error(TokenType::IDENTIFIER,
-                   std::format("Cannot assign to {} as it is a function", name),
-                   CmdErrorType::RUNTIME_ERROR);
+      CmdError::error(
+          TokenType::IDENTIFIER,
+          std::format("Cannot assign to {} as it is a function", name),
+          CmdErrorType::RUNTIME_ERROR);
       return;
     }
 
@@ -23,8 +24,8 @@ void Environment::define(const std::string& name, Object value) {
 Object Environment::get(const Token& name) {
   if (m_values.contains(name.m_lexeme)) return m_values[name.m_lexeme];
   CmdError::error(name.m_type,
-               std::format("Undefined variable '{}'.", name.m_lexeme),
-               CmdErrorType::RUNTIME_ERROR);
+                  std::format("Undefined variable '{}'.", name.m_lexeme),
+                  CmdErrorType::RUNTIME_ERROR);
   return std::monostate{};
 }
 
@@ -44,8 +45,8 @@ void Environment::assign(const Token& name, Object value) {
   }
 
   CmdError::error(name.m_type,
-               std::format("Undefined variable '{}'", name.m_lexeme),
-               CmdErrorType::RUNTIME_ERROR);
+                  std::format("Undefined variable '{}'", name.m_lexeme),
+                  CmdErrorType::RUNTIME_ERROR);
 }
 
 Environment& Environment::getInstance() {

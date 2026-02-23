@@ -36,7 +36,7 @@ inline std::unique_ptr<Stmnt> getStmnt(const std::string& input) {
 
 template <typename EType>
 inline EType* getTopExpr(const std::unique_ptr<Stmnt>& pStmnt) {
-  auto *stmnt = dynamic_cast<ExprStmnt*>(pStmnt.get());
+  auto* stmnt = dynamic_cast<ExprStmnt*>(pStmnt.get());
   REQUIRE(stmnt != nullptr);
 
   auto expr = dynamic_cast<EType*>(stmnt->m_expr.get());

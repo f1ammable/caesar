@@ -69,7 +69,7 @@ void Scanner::scanToken() {
         identifier();
       } else {
         CmdError::error(TokenType::END, "Unexpected character",
-                     CmdErrorType::SCAN_ERROR);
+                        CmdErrorType::SCAN_ERROR);
       }
       break;
   }
@@ -101,7 +101,7 @@ void Scanner::string() {
 
   if (isAtEnd()) {
     CmdError::error(TokenType::STRING, "Unterminated string",
-                 CmdErrorType::SCAN_ERROR);
+                    CmdErrorType::SCAN_ERROR);
     return;
   }
 

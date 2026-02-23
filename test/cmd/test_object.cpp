@@ -1,9 +1,9 @@
 #include <catch2/catch_message.hpp>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
+#include <cmd/object.hpp>
 #include <variant>
 
-#include <cmd/object.hpp>
 #include "test_helpers.hpp"
 
 // This whole file is ugly but it works and I can't find it a better way to do
