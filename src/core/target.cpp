@@ -35,7 +35,7 @@ bool Target::isFileValid(const std::string& filePath) {
                                   std::byte{}}),
         PlatformType::WIN}}};
 
-  u32 magicRead = 0;
+  const u32 magicRead = 0;
   std::ifstream f{filePath};
   f.seekg(0, std::ios::beg);
   f.read(std::bit_cast<char*>(&magicRead), sizeof(u32));

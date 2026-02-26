@@ -62,13 +62,13 @@ class BreakpointFn : public Callable {
     if (!bps.contains(addr)) return std::format("No breakpoint at {}", addr);
 
     if (toggle) {
-      i32 res = target->disableBreakpoint(addr, true);
+      const i32 res = target->disableBreakpoint(addr, true);
       if (res != 0) return "Error toggling breakpoint";
       return std::format("Toggled breakpoint at {}, now {}", addr,
                          bps[addr].enabled);
     }
 
-    i32 res = target->disableBreakpoint(addr, false);
+    const i32 res = target->disableBreakpoint(addr, false);
     if (res != 0) return "Error disabling breakpoint";
     return std::format("Removed breakpoint at {}", addr);
   }
@@ -92,9 +92,9 @@ class BreakpointFn : public Callable {
   FnPtr set = [](const std::vector<std::string>& args) -> Object {
     Expected<u64, std::string> addrRes = strToAddr(args[0]);
     if (!addrRes) return addrRes.error();
-    u64 addr = *addrRes;
+    const u64 addr = *addrRes;
 
-    i32 bpRes = Context::getTarget()->setBreakpoint(addr);
+    const i32 bpRes = Context::getTarget()->setBreakpoint(addr);
     if (bpRes != 0)
       return "Error setting breakpoint!";
     else
@@ -127,7 +127,7 @@ class BreakpointFn : public Callable {
       return std::monostate{};
     }
     std::vector<std::string> convertedArgs = detail::convertToStr(args);
-    if (convertedArgs.size() < 1) return std::monostate{};
+    if (convertedArgs.empty()) return std::monostate{};
     const std::string subcmd = convertedArgs.front();
     convertedArgs.erase(convertedArgs.begin());
     return m_subcmds.exec(subcmd, convertedArgs);
@@ -191,7 +191,7 @@ class RunFn : public Callable {
     else
       return "Unable to start target (are you running with sudo?)\n";
 
-    i32 res = m_target->attach();
+    const i32 res = m_target->attach();
     if (res != 0) return "Could not attach to target!\n";
     m_target->setTargetState(TargetState::RUNNING);
     // TODO: Reset this when target exits
@@ -255,7 +255,7 @@ class TargetFn : public Callable {
 
   Object call(std::vector<Object> args) override {
     std::vector<std::string> convertedArgs = detail::convertToStr(args);
-    if (convertedArgs.size() < 1) return std::monostate{};
+    if (convertedArgs.empty()) return std::monostate{};
     const std::string subcmd = convertedArgs.front();
     convertedArgs.erase(convertedArgs.begin());
     return m_subcmds.exec(subcmd, convertedArgs);

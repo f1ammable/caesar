@@ -57,9 +57,9 @@ extern "C" {
 // Adapted from https://lowlevelbits.org/parsing-mach-o-files/
 
 void Macho::readMagic() {
-  u32 magic = 0;
+  const u32 magic = 0;
   m_file.seekg(0, std::ios::beg);
-  m_file.read(std::bit_cast<char*>(&magic), sizeof(uint32_t));
+  m_file.read(std::bit_cast<char*>(&magic), sizeof(u32));
   m_magic = magic;
 }
 
@@ -82,16 +82,16 @@ void Macho::dumpHeader(int offset) {
     loadCmdsOffset += headerSize;
     std::cout << Macho::cpuTypeName(header.cputype) << '\n';
   } else {
-    int headerSize = sizeof(struct mach_header);
+    const int headerSize = sizeof(struct mach_header);
     auto header = loadBytesAndMaybeSwap<mach_header>(offset);
   }
 
   dumpSegmentCommands(loadCmdsOffset, ncmds);
 }
 
-void Macho::dumpSegmentCommands(int offset, uint32_t ncmds) {
+void Macho::dumpSegmentCommands(int offset, u32 ncmds) {
   u32 actualOffset = offset;
-  for (int i = 0; i < ncmds; i++) {
+  for (u32 i = 0; i < ncmds; i++) {
     auto cmd = loadBytesAndMaybeSwap<load_command>(actualOffset);
     if (cmd.cmd == LC_SEGMENT_64) {
       auto segment = loadBytesAndMaybeSwap<segment_command_64>(actualOffset);
@@ -115,7 +115,7 @@ std::string Macho::cpuTypeName(cpu_type_t cpuType) {
   return "unknown";
 }
 
-void Macho::dumpSections(uint32_t offset, uint32_t end) {
+void Macho::dumpSections(u32 offset, u32 end) {
   u32 actualOffset = offset;
   while (actualOffset != end) {
     auto section = loadBytesAndMaybeSwap<section_64>(actualOffset);
@@ -154,7 +154,7 @@ i32 Macho::launch(CStringArray& argList) {
   m_pid = pid;
 
   // TODO: This only works with sudo even when codesigned, why?
-  kern_return_t kr = task_for_pid(mach_task_self(), pid, &this->m_task);
+  const kern_return_t kr = task_for_pid(mach_task_self(), pid, &this->m_task);
   if (kr != KERN_SUCCESS) {
     CoreError::error(mach_error_string(kr));
   }
@@ -163,7 +163,7 @@ i32 Macho::launch(CStringArray& argList) {
 
 i32 Macho::attach() {
   // http://uninformed.org/index.cgi?v=4&a=3&p=14
-  i32 res = this->setupExceptionPorts();
+  const i32 res = this->setupExceptionPorts();
   ptrace(PT_ATTACHEXC, m_pid, nullptr, 0);
   this->readAslrSlide();
   return res;
@@ -171,7 +171,7 @@ i32 Macho::attach() {
 
 // TODO: Make an overload with u32 for 32bit systems
 i32 Macho::setBreakpoint(u64 addr) {
-  u64 actual = addr + m_aslr_slide;
+  const u64 actual = addr + m_aslr_slide;
   auto sz = static_cast<mach_msg_type_number_t>(sizeof(u32));
   vm_offset_t origBuf = 0;
   kern_return_t kr = mach_vm_read(m_task, actual, sizeof(u32), &origBuf, &sz);
@@ -181,7 +181,7 @@ i32 Macho::setBreakpoint(u64 addr) {
     return -1;
   }
 
-  u32 origIns = *reinterpret_cast<u32*>(origBuf);
+  const u32 origIns = *reinterpret_cast<u32*>(origBuf);
   mach_vm_deallocate(mach_task_self(), origBuf, sizeof(u32));
   m_breakpoints[addr] = {.orig_ins = origIns, .enabled = true};
 
@@ -321,6 +321,8 @@ kern_return_t catch_mach_exception_raise_state(
     const thread_state_t oldState,  // NOLINT(misc-misplaced-const)
     mach_msg_type_number_t oldStateCnt, thread_state_t newState,
     mach_msg_type_number_t* newStateCnt) {
+#pragma unused(flavour)
+#pragma unused(oldState)
 #pragma unused(excPort)
 #pragma unused(exc)
 #pragma unused(code)
@@ -335,9 +337,10 @@ kern_return_t catch_mach_exception_raise_state(
 kern_return_t catch_mach_exception_raise_state_identity(
     mach_port_t excPort, mach_port_t thread, mach_port_t task,
     exception_type_t exc, mach_exception_data_t code,
-    mach_msg_type_number_t codeCnt, int* flavour, thread_state_t oldState,
-    mach_msg_type_number_t oldStateCnt, thread_state_t newState,
-    mach_msg_type_number_t* newStateCnt) {
+    mach_msg_type_number_t codeCnt,
+    int* flavour,  // NOLINT(readability-non-const-parameter)
+    thread_state_t oldState, mach_msg_type_number_t oldStateCnt,
+    thread_state_t newState, mach_msg_type_number_t* newStateCnt) {
 #pragma unused(excPort)
 #pragma unused(task)
 #pragma unused(code)
@@ -376,19 +379,19 @@ kern_return_t catch_mach_exception_raise_state_identity(
 
 }  // extern "C"
 
-mach_port_t Macho::threadSelect() {
+mach_port_t Macho::threadSelect() const {
   std::cout << "TASK: " << m_task << '\n';
   thread_act_array_t acts{};
   mach_msg_type_number_t numThreads = 0;
 
-  kern_return_t kr = task_threads(m_task, &acts, &numThreads);
+  const kern_return_t kr = task_threads(m_task, &acts, &numThreads);
 
   if (kr != KERN_SUCCESS) {
     std::cout << "task_threads fail!\n";
     CoreError::error(mach_error_string(kr));
   }
 
-  thread_act_t mainThread = acts[0];  // Cleanup
+  const thread_act_t mainThread = acts[0];  // Cleanup
   vm_deallocate(mach_task_self(), reinterpret_cast<vm_address_t>(acts),
                 numThreads * sizeof(thread_act_t));
 
@@ -546,12 +549,12 @@ void Macho::readAslrSlideFromRegions() {
     if (kr != KERN_SUCCESS) break;
 
     // Look for executable regions that could contain the main binary
-    if (info.protection & VM_PROT_EXECUTE) {
+    if ((info.protection & VM_PROT_EXECUTE) != 0) {
       vm_offset_t headerBuf{};
       auto sz = static_cast<mach_msg_type_number_t>(sizeof(u32));
       kr = mach_vm_read(m_task, addr, sizeof(u32), &headerBuf, &sz);
       if (kr == KERN_SUCCESS) {
-        u32 magic = *reinterpret_cast<u32*>(headerBuf);
+        const u32 magic = *reinterpret_cast<u32*>(headerBuf);
         mach_vm_deallocate(mach_task_self(), headerBuf, sizeof(u32));
         if (magic == MH_MAGIC_64) {
           m_aslr_slide = addr - 0x100000000;
@@ -568,7 +571,7 @@ void Macho::readAslrSlideFromRegions() {
 u64& Macho::getAslrSlide() { return m_aslr_slide; }
 
 i32 Macho::restorePrevIns(u64 k) {
-  u64 addr = k + m_aslr_slide;
+  const u64 addr = k + m_aslr_slide;
 
   kern_return_t kr =
       mach_vm_protect(m_task, addr, sizeof(u32), FALSE,
@@ -605,7 +608,7 @@ i32 Macho::disableBreakpoint(u64 addr, bool remove) {
 
   if (!bp.enabled) return 0;
 
-  i32 res = this->restorePrevIns(addr);
+  const i32 res = this->restorePrevIns(addr);
   if (res != 0) return 1;
 
   if (remove)

@@ -21,7 +21,7 @@ struct CpuTypeNames {
   const char* cpu_name;
 };
 
-class Macho : public Target {
+class Macho final : public Target {
  public:
   explicit Macho(std::ifstream f, std::string filePath);
 
@@ -62,7 +62,7 @@ class Macho : public Target {
   void maybeSwapBytes();
 
   template <typename T>
-  T loadBytesAndMaybeSwap(uint32_t offset) {
+  T loadBytesAndMaybeSwap(u32 offset) {
     T buf;
     m_file.seekg(offset, std::ios::beg);
     m_file.read(std::bit_cast<char*>(&buf), sizeof(T));
@@ -70,12 +70,12 @@ class Macho : public Target {
     return buf;
   }
 
-  void dumpSegmentCommands(int offset, uint32_t ncmds);
+  void dumpSegmentCommands(int offset, u32 ncmds);
   static std::string cpuTypeName(cpu_type_t cpuType);
-  void dumpSections(uint32_t offset, uint32_t end);
+  void dumpSections(u32 offset, u32 end);
   i32 setupExceptionPorts();
   void readAslrSlideFromRegions();
-  mach_port_t threadSelect();  // TODO: doesn't work (yet)
+  mach_port_t threadSelect() const;  // TODO: doesn't work (yet)
 };
 
 #endif  // CAESAR_MACHO_HPP

@@ -20,10 +20,10 @@
 template <typename T>
 struct SwapDescriptor {
   static void swap(T* ptr) {
-    static_assert(sizeof(T) % sizeof(uint32_t) == 0,
+    static_assert(sizeof(T) % sizeof(u32) == 0,
                   "Struct size must be multiple of 4 bytes");
 
-    auto* fields = reinterpret_cast<uint32_t*>(ptr);
+    auto* fields = reinterpret_cast<u32*>(ptr);
     constexpr size_t numFields = sizeof(T) / sizeof(u32);
 
     // TODO: Compiler builtin, make this more platform agnostic
@@ -33,13 +33,13 @@ struct SwapDescriptor {
   }
 };
 
-#ifdef __APPLE__
-
 struct FieldInfo {
   size_t offset;
   size_t size;
   bool swap;
 };
+
+#ifdef __APPLE__
 
 template <>
 struct SwapDescriptor<segment_command_64> {
@@ -82,10 +82,10 @@ struct SwapDescriptor<segment_command_64> {
     for (const auto& f : fields) {
       if (f.swap) {
         if (f.size == 4) {
-          auto* ptr = reinterpret_cast<uint32_t*>(base + f.offset);
+          auto* ptr = reinterpret_cast<u32*>(base + f.offset);
           *ptr = __builtin_bswap32(*ptr);
         } else if (f.size == 8) {
-          auto* ptr = reinterpret_cast<uint64_t*>(base + f.offset);
+          auto* ptr = reinterpret_cast<u64*>(base + f.offset);
           *ptr = __builtin_bswap64(*ptr);
         }
       }
@@ -115,10 +115,10 @@ struct SwapDescriptor<section_64> {
     for (const auto& f : fields) {
       if (f.swap) {
         if (f.size == 4) {
-          auto* ptr = reinterpret_cast<uint32_t*>(base + f.offset);
+          auto* ptr = reinterpret_cast<u32*>(base + f.offset);
           *ptr = __builtin_bswap32(*ptr);
         } else if (f.size == 8) {
-          auto* ptr = reinterpret_cast<uint64_t*>(base + f.offset);
+          auto* ptr = reinterpret_cast<u64*>(base + f.offset);
           *ptr = __builtin_bswap64(*ptr);
         }
       }
@@ -131,7 +131,7 @@ struct SwapDescriptor<section_64> {
 enum class PlatformType : std::uint8_t { MACH, LINUX, WIN, UNSUPPORTED };
 constexpr static PlatformType getPlatform() {
   PlatformType t = PlatformType::UNSUPPORTED;
-#if defined(__APPLE__)
+#ifdef __APPLE__
   t = PlatformType::MACH;
 #elif defined(__linux__)
   t = PlatformType::LINUX;
