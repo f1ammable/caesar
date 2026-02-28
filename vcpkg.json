@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "dependencies": [
     "libdwarf",
-    "catch2"
+    "catch2",
+    "readline"
   ]
 }

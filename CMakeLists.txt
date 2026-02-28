@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.28.0)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 # OPTIONAL: Use ccache if present
 find_program(CCACHE_PROGRAM ccache)
@@ -72,7 +73,12 @@ if(ENABLE_COVERAGE)
 endif()
 
 add_executable(caesar src/main.cpp src/error.cpp src/error.hpp src/formatter.hpp)
-target_link_libraries(caesar PRIVATE caesar_cmd caesar_core)
+
+# Readline
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(readline REQUIRED IMPORTED_TARGET readline)
+
+target_link_libraries(caesar PRIVATE caesar_cmd caesar_core PkgConfig::readline)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_link_libraries(caesar PRIVATE caesar_macho)
