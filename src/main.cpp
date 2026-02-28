@@ -6,12 +6,18 @@
 #include <cmd/token.hpp>
 #include <core/context.hpp>
 #include <core/target.hpp>
+#include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <error.hpp>
 #include <filesystem>
 #include <format>
 #include <iostream>
 #include <memory>
+// clang-format off
+#include <readline/history.h>
+#include <readline/readline.h>
+// clang-format on
 #include <string>
 #include <variant>
 #include <vector>
@@ -45,26 +51,30 @@ void run(const std::string& src) {
   }
 }
 
+bool shouldExit(char** buf) {
+  return *buf == nullptr || std::strcmp(*buf, "(null)") == 0;
+}
+
 void runPrompt() {
+  char* lineBuf = nullptr;
+  const char* prompt = "> ";
   std::string line;
 
   while (true) {
-    line.clear();
-    std::cout << "> ";
-    std::cout.flush();
-    if (!std::getline(std::cin, line)) {
-      break;
+    lineBuf = readline(prompt);
+    if (shouldExit(&lineBuf)) {
+      clear_history();
+      return;
     }
-    if (line.empty()) {
-      continue;
-    }
+    if (*lineBuf != 0) add_history(lineBuf);
+    line = lineBuf;
+    free(lineBuf);  // NOLINT(cppcoreguidelines-no-malloc)
     run(line);
     cmdError.m_had_error = false;
   }
-  std::cout << '\n';
 }
 
-void runFile(const std::string& filePath) {
+void runWithFile(const std::string& filePath) {
   if (!std::filesystem::exists(filePath)) {
     std::cout << "Target does not exist!\n";
     runPrompt();
@@ -85,7 +95,7 @@ int main(int argc, char** argv) {
     std::cout << std::format("Usage: {} [file]\n", argv[0]);
     return 64;
   } else if (argc == 2) {
-    runFile(argv[1]);
+    runWithFile(argv[1]);
   } else {
     runPrompt();
   }
