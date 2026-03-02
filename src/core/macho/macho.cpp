@@ -356,8 +356,22 @@ kern_return_t catch_mach_exception_raise_state_identity(
   memcpy(newArmState, oldArmState, sizeof(arm_thread_state64_t));
 
   std::cout << Macho::exceptionReason(exc, codeCnt, code);
-  std::cout << std::format("PC @ {}\n",
-                           toHex(oldArmState->__pc - macho->getAslrSlide()));
+
+  constexpr int regsPerRow = 4;
+  for (int i = 0; i < 29; i++) {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+    std::cout << std::format(" x{:<2}: {}", i, toHex(oldArmState->__x[i]));
+    if ((i + 1) % regsPerRow == 0)
+      std::cout << '\n';
+    else
+      std::cout << "  ";
+  }
+
+  std::cout << std::format("\n fp: {} lr: {}\n", toHex(oldArmState->__fp),
+                           toHex(oldArmState->__lr));
+  std::cout << std::format(" sp: {} pc: {}\n", toHex(oldArmState->__sp),
+                           toHex(oldArmState->__pc));
+  std::cout << std::format(" cpsr: {}\n", toHex(oldArmState->__cpsr));
 
   if (macho->getThreadPort() == 0) macho->setThreadPort(thread);
 
