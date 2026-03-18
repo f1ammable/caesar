@@ -1,6 +1,7 @@
 #ifndef CAESAR_UTIL_HPP
 #define CAESAR_UTIL_HPP
 
+#include <optional>
 #ifdef __APPLE__
 
 #include <mach-o/loader.h>
@@ -14,6 +15,7 @@
 #include <vector>
 
 #include "expected.hpp"
+#include "register.hpp"
 #include "typedefs.hpp"
 
 namespace detail {
@@ -166,7 +168,10 @@ inline Expected<u64, std::string> strToAddr(const std::string& addr) {
   }
 }
 
-
+constexpr std::optional<Reg> parseRegisterName(const std::string& r) {
+  const auto* it = std::ranges::find(REG_MAP, r, &RegEntry::name);
+  return it != REG_MAP.end() ? std::optional{it->reg} : std::nullopt;
+}
 
 }  // namespace detail
 

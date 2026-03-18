@@ -15,44 +15,7 @@ enum class TargetState : u8 { STOPPED, RUNNING, EXITED };
 enum class BinaryType : u8 { MACHO, ELF, PE };
 enum class TargetError : u8 { FORK_FAIL };
 enum class ResumeType : u8 { RESUME };
-enum class Arm64Reg : u8 {
-  X0,
-  X1,
-  X2,
-  X3,
-  X4,
-  X5,
-  X6,
-  X7,
-  X8,
-  X9,
-  X10,
-  X11,
-  X12,
-  X13,
-  X14,
-  X15,
-  X16,
-  X17,
-  X18,
-  X19,
-  X20,
-  X21,
-  X22,
-  X23,
-  X24,
-  X25,
-  X26,
-  X27,
-  X28,
-  X29,
-  X30,
-  SP,
-  PC,
-  LR,
-  CSPR,
-  COUNT
-};
+
 
 struct Breakpoint {
   u32 orig_ins;
