@@ -2,8 +2,9 @@
 #define CAESAR_TOKEN_TYPE_H
 
 #include <cstdint>
+using u8 = std::uint8_t;
 
-enum class TokenType : std::uint8_t {
+enum class TokenType : u8 {
   LEFT_PAREN,
   RIGHT_PAREN,
   MINUS,

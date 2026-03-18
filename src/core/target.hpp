@@ -11,10 +11,35 @@
 #include "typedefs.hpp"
 #include "util.hpp"
 
-enum class TargetState : std::uint8_t { STOPPED, RUNNING, EXITED };
-enum class BinaryType : std::uint8_t { MACHO, ELF, PE };
-enum class TargetError : std::uint8_t { FORK_FAIL };
-enum class ResumeType : std::uint8_t { RESUME };
+enum class TargetState : u8 { STOPPED, RUNNING, EXITED };
+enum class BinaryType : u8 { MACHO, ELF, PE };
+enum class TargetError : u8 { FORK_FAIL };
+enum class ResumeType : u8 { RESUME };
+enum class PlatformType : u8 { MACH, LINUX, WIN, UNSUPPORTED };
+
+constexpr static PlatformType getPlatform() {
+  PlatformType t = PlatformType::UNSUPPORTED;
+#ifdef __APPLE__
+  t = PlatformType::MACH;
+#elif defined(__linux__)
+  t = PlatformType::LINUX;
+#elif defined(_WIN32)
+  t = PlatformType::LINUX;
+#endif
+  return t;
+}
+
+constexpr std::string_view getTargetType() {
+  constexpr PlatformType p = getPlatform();
+  switch (p) {
+    case PlatformType::MACH:
+      return "Mach-O";
+    case PlatformType::LINUX:
+      return "ELF";
+    case PlatformType::WIN:
+      return "PE";
+  }
+}
 
 struct Breakpoint {
   u32 orig_ins;
@@ -50,7 +75,7 @@ class Target {
   virtual i32 attach() = 0;
   virtual i32 setBreakpoint(u64 addr) = 0;
   virtual i32 disableBreakpoint(u64 addr, bool remove) = 0;
-  virtual i32 launch(CStringArray& argList) = 0;
+  virtual i32 launch(detail::CStringArray& argList) = 0;
   virtual void detach() = 0;
   virtual void eventLoop() = 0;
   virtual void resume(ResumeType cond) = 0;
@@ -61,6 +86,7 @@ class Target {
   void startEventLoop();
   std::map<u64, Breakpoint>& getRegisteredBreakpoints();
   std::string getInfo();
+  std::string getRegisterInfo();
 
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);

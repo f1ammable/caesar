@@ -12,5 +12,6 @@ using u64 = std::uint64_t;
 using MagicBytes = std::array<std::byte, 4>;
 using FnPtr = Object (*)(const std::vector<std::string>&);
 using sv = std::string_view;
+using u8 = std::uint8_t;
 
 #endif

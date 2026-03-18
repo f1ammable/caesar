@@ -1,17 +1,14 @@
 #ifndef CMD_ERROR_H
 #define CMD_ERROR_H
 
-#include <cstdint>
 #include <format>
 #include <map>
 #include <string>
 
-enum class CmdErrorType : std::uint8_t {
-  PARSE_ERROR,
-  SCAN_ERROR,
-  RUNTIME_ERROR
-};
-enum class TokenType : std::uint8_t;
+#include "cmd/token_type.hpp"
+
+enum class CmdErrorType : u8 { PARSE_ERROR, SCAN_ERROR, RUNTIME_ERROR };
+enum class TokenType : u8;
 
 // NOLINTNEXTLINE(cppcoreguidelines-special-member-functions)
 class CoreError {

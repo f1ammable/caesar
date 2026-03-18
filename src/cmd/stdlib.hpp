@@ -52,7 +52,7 @@ class BreakpointFn : public Callable {
  private:
   static Object rmOrToggleBreakpoint(const std::vector<std::string>& args,
                                      bool toggle = false) {
-    Expected<u64, std::string> addrRes = strToAddr(args[0]);
+    Expected<u64, std::string> addrRes = detail::strToAddr(args[0]);
     if (!addrRes) return addrRes.error();
     u64 addr = *addrRes;
 
@@ -81,7 +81,7 @@ class BreakpointFn : public Callable {
     if (breakpoints.empty()) return "No breakpoints set!";
 
     for (const auto& [k, v] : breakpoints) {
-      retStr += std::format("Breakpoint @ {} ({})\n", toHex(k),
+      retStr += std::format("Breakpoint @ {} ({})\n", detail::toHex(k),
                             breakpoints[k].enabled);
     }
 
@@ -90,7 +90,7 @@ class BreakpointFn : public Callable {
   };
 
   FnPtr set = [](const std::vector<std::string>& args) -> Object {
-    Expected<u64, std::string> addrRes = strToAddr(args[0]);
+    Expected<u64, std::string> addrRes = detail::strToAddr(args[0]);
     if (!addrRes) return addrRes.error();
     const u64 addr = *addrRes;
 
@@ -98,7 +98,7 @@ class BreakpointFn : public Callable {
     if (bpRes != 0)
       return "Error setting breakpoint!";
     else
-      return std::format("Breakpoint set at: {}", toHex(addr));
+      return std::format("Breakpoint set at: {}", detail::toHex(addr));
   };
 
   FnPtr remove = [](const std::vector<std::string>& args) -> Object {
@@ -136,7 +136,7 @@ class BreakpointFn : public Callable {
 
 class RunFn : public Callable {
  private:
-  static CStringArray concatElems(const std::vector<Object>& v) {
+  static detail::CStringArray concatElems(const std::vector<Object>& v) {
     auto ensureStr = [](const auto& obj) -> std::string {
       using T = std::decay_t<decltype(obj)>;
 
@@ -150,7 +150,7 @@ class RunFn : public Callable {
         return "";
     };
 
-    CStringArray res{};
+    detail::CStringArray res{};
     res.storage.reserve(v.size());
     res.ptrs.reserve(v.size() + 1);
 
@@ -178,7 +178,7 @@ class RunFn : public Callable {
   [[nodiscard]] std::string str() const override { return "<native fn: run>"; }
 
   Object call(std::vector<Object> args) override {
-    CStringArray argList = RunFn::concatElems(args);
+    detail::CStringArray argList = RunFn::concatElems(args);
     if (m_target == nullptr) {
       std::cerr << "Error: Target is not set!\n";
       CmdError::getInstance().m_had_error = true;
@@ -259,6 +259,20 @@ class TargetFn : public Callable {
     const std::string subcmd = convertedArgs.front();
     convertedArgs.erase(convertedArgs.begin());
     return m_subcmds.exec(subcmd, convertedArgs);
+  }
+};
+
+class RegisterFn : public Callable {
+ private:
+  FnPtr view = [](const std::vector<std::string>& args) -> Object {
+    if (args.empty())
+      return "Please provide one register name to view the contents of it";
+  };
+
+ public:
+  [[nodiscard]] int arity() const override { return 2; }
+  [[nodiscard]] std::string str() const override {
+    return "<native fn: register>";
   }
 };
 

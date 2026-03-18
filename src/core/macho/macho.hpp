@@ -29,7 +29,7 @@ class Macho final : public Target {
   i32 attach() override;
   i32 setBreakpoint(u64 addr) override;
   i32 disableBreakpoint(u64 addr, bool remove) override;
-  i32 launch(CStringArray& argList) override;
+  i32 launch(detail::CStringArray& argList) override;
   void detach() override;
   void eventLoop() override;
   void resume(ResumeType cond) override;
@@ -66,7 +66,7 @@ class Macho final : public Target {
     T buf;
     m_file.seekg(offset, std::ios::beg);
     m_file.read(std::bit_cast<char*>(&buf), sizeof(T));
-    if (m_is_swap) SwapDescriptor<T>::swap(&buf);
+    if (m_is_swap) detail::SwapDescriptor<T>::swap(&buf);
     return buf;
   }
 

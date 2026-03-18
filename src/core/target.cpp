@@ -2,7 +2,6 @@
 
 #include <memory>
 
-#include "core/util.hpp"
 #ifdef __APPLE__
 #include "macho/macho.hpp"
 #endif
@@ -64,4 +63,8 @@ std::string Target::getInfo() {
   res += std::format("Type: {}, Architecure: {}", getTargetType(),
                      m_is_64 ? "64-bit" : "32-bit");
   return res;
+}
+
+std::string Target::getRegisterInfo() {
+  
 }

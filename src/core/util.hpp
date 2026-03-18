@@ -9,7 +9,6 @@
 
 #include <array>
 #include <cstddef>
-#include <cstdint>
 #include <format>
 #include <stdexcept>
 #include <vector>
@@ -17,6 +16,7 @@
 #include "expected.hpp"
 #include "typedefs.hpp"
 
+namespace detail {
 template <typename T>
 struct SwapDescriptor {
   static void swap(T* ptr) {
@@ -128,19 +128,6 @@ struct SwapDescriptor<section_64> {
 
 #endif
 
-enum class PlatformType : std::uint8_t { MACH, LINUX, WIN, UNSUPPORTED };
-constexpr static PlatformType getPlatform() {
-  PlatformType t = PlatformType::UNSUPPORTED;
-#ifdef __APPLE__
-  t = PlatformType::MACH;
-#elif defined(__linux__)
-  t = PlatformType::LINUX;
-#elif defined(_WIN32)
-  t = PlatformType::LINUX;
-#endif
-  return t;
-}
-
 struct CStringArray {
   std::vector<std::vector<char>> storage;
   std::vector<char*> ptrs;
@@ -179,16 +166,6 @@ inline Expected<u64, std::string> strToAddr(const std::string& addr) {
   }
 }
 
-constexpr std::string_view getTargetType() {
-  constexpr PlatformType p = getPlatform();
-  switch (p) {
-    case PlatformType::MACH:
-      return "Mach-O";
-    case PlatformType::LINUX:
-      return "ELF";
-    case PlatformType::WIN:
-      return "PE";
-  }
-}
+}  // namespace detail
 
 #endif
