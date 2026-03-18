@@ -2,6 +2,7 @@
 #define CAESAR_TOKEN_TYPE_H
 
 #include <cstdint>
+// Needed here separately to not recursively include typedefs.hpp
 using u8 = std::uint8_t;
 
 enum class TokenType : u8 {

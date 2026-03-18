@@ -6,6 +6,7 @@ add_library(caesar_core STATIC
         context.hpp
         target.hpp
         target.cpp
+        platform.hpp
 )
 
 target_include_directories(caesar_core PUBLIC
