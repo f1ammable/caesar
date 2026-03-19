@@ -8,6 +8,7 @@
 #include <memory>
 #include <thread>
 
+#include "cmd/object.hpp"
 #include "typedefs.hpp"
 #include "util.hpp"
 
@@ -15,7 +16,6 @@ enum class TargetState : u8 { STOPPED, RUNNING, EXITED };
 enum class BinaryType : u8 { MACHO, ELF, PE };
 enum class TargetError : u8 { FORK_FAIL };
 enum class ResumeType : u8 { RESUME };
-
 
 struct Breakpoint {
   u32 orig_ins;
@@ -55,6 +55,7 @@ class Target {
   virtual void detach() = 0;
   virtual void eventLoop() = 0;
   virtual void resume(ResumeType cond) = 0;
+  virtual std::string getRegisters() = 0;
 
   void setTargetState(TargetState s) { m_state = s; }
   std::atomic<TargetState>& getTargetState() { return m_state; }
@@ -62,7 +63,6 @@ class Target {
   void startEventLoop();
   std::map<u64, Breakpoint>& getRegisteredBreakpoints();
   std::string getInfo();
-  std::string getRegisterInfo();
 
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);

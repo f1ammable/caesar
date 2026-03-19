@@ -4,6 +4,7 @@
 #include <mach-o/loader.h>
 #include <mach-o/swap.h>
 #include <mach/arm/kern_return.h>
+#include <mach/arm/thread_status.h>
 #include <mach/exception_types.h>
 #include <mach/mach_types.h>
 #include <mach/machine.h>
@@ -15,6 +16,9 @@
 
 #include "core/target.hpp"
 #include "core/util.hpp"
+#include "error.hpp"
+#include "expected.hpp"
+#include "types.hpp"
 
 struct CpuTypeNames {
   cpu_type_t cpu_type;
@@ -25,6 +29,20 @@ class Macho final : public Target {
  public:
   explicit Macho(std::ifstream f, std::string filePath);
 
+#ifdef __arm64__
+  using ThreadState = ArmThreadState64T;
+  static constexpr thread_state_flavor_t THREAD_FLAVOUR = ARM_THREAD_STATE64;
+  static constexpr mach_msg_type_number_t THREAD_STATE_COUNT =
+      ARM_THREAD_STATE64_COUNT;
+#endif
+
+#ifdef __i386__
+  using ThreadState = X86ThreadState64T;
+  static constexpr thread_state_flavor_t THREAD_FLAVOUR = X86_THREAD_STATE64;
+  static constexpr mach_msg_type_number_t THREAD_STATE_COUNT =
+      X86_THREAD_STATE64_COUNT;
+#endif
+
   void dumpHeader(int offset) override;
   i32 attach() override;
   i32 setBreakpoint(u64 addr) override;
@@ -33,6 +51,7 @@ class Macho final : public Target {
   void detach() override;
   void eventLoop() override;
   void resume(ResumeType cond) override;
+  std::string getRegisters() override;
 
   static std::string exceptionReason(exception_type_t exc,
                                      mach_msg_type_number_t codeCnt,
@@ -42,6 +61,7 @@ class Macho final : public Target {
   void readAslrSlide();
   u64& getAslrSlide();
   i32 restorePrevIns(u64 k);
+  std::string formatRegisterOutput(ThreadState* threadState) const;
 
  private:
   task_t m_task = 0;

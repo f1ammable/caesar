@@ -351,44 +351,27 @@ kern_return_t catch_mach_exception_raise_state_identity(
   target->setTargetState(TargetState::STOPPED);
   task_suspend(task);
   auto* macho = dynamic_cast<Macho*>(Context::getTarget().get());
-  auto* oldArmState = reinterpret_cast<arm_thread_state64_t*>(oldState);
-  auto* newArmState = reinterpret_cast<arm_thread_state64_t*>(newState);
-  memcpy(newArmState, oldArmState, sizeof(arm_thread_state64_t));
+  auto* oldArmState = reinterpret_cast<ArmThreadState64T*>(oldState);
+  auto* newArmState = reinterpret_cast<ArmThreadState64T*>(newState);
+  memcpy(newArmState, oldArmState, sizeof(ArmThreadState64T));
 
   std::cout << Macho::exceptionReason(exc, codeCnt, code);
-
-  constexpr int regsPerRow = 4;
-  for (int i = 0; i < 29; i++) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-    std::cout << std::format(" x{:<2}: {}", i,
-                             detail::toHex(oldArmState->__x[i]));
-    if ((i + 1) % regsPerRow == 0)
-      std::cout << '\n';
-    else
-      std::cout << "  ";
-  }
-
-  std::cout << std::format("\n fp: {} lr: {}\n",
-                           detail::toHex(oldArmState->__fp),
-                           detail::toHex(oldArmState->__lr));
-  std::cout << std::format(" sp: {} pc: {}\n", detail::toHex(oldArmState->__sp),
-                           detail::toHex(oldArmState->__pc));
-  std::cout << std::format(" cpsr: {}\n", detail::toHex(oldArmState->__cpsr));
+  std::cout << macho->formatRegisterOutput(oldArmState);
 
   if (macho->getThreadPort() == 0) macho->setThreadPort(thread);
 
   if (exc == EXC_BAD_INSTRUCTION && *flavour == ARM_THREAD_STATE64) {
     std::cout << std::format(
         "Fault @ {}!\n",
-        detail::toHex(oldArmState->__pc - macho->getAslrSlide()));
-    newArmState->__pc += 4;
+        detail::toHex(oldArmState->pc - macho->getAslrSlide()));
+    newArmState->pc += 4;
     std::cout << std::format(
         "Resuming @ {}\n",
-        detail::toHex(newArmState->__pc - macho->getAslrSlide()));
+        detail::toHex(newArmState->pc - macho->getAslrSlide()));
   }
 
   if (exc == EXC_BREAKPOINT) {
-    macho->restorePrevIns(oldArmState->__pc - macho->getAslrSlide());
+    macho->restorePrevIns(oldArmState->pc - macho->getAslrSlide());
   }
 
   *newStateCnt = oldStateCnt;
@@ -635,4 +618,43 @@ i32 Macho::disableBreakpoint(u64 addr, bool remove) {
     bp.enabled = false;
 
   return 0;
+}
+
+std::string Macho::getRegisters() {
+  ThreadState oldState;
+  mach_msg_type_number_t oldStateCnt = Macho::THREAD_STATE_COUNT;
+  kern_return_t kr = thread_get_state(
+      m_thread_port, Macho::THREAD_FLAVOUR,
+      reinterpret_cast<thread_state_t>(&oldState), &oldStateCnt);
+
+  if (kr != KERN_SUCCESS) {
+    std::cout << "thread_get_state fail!\n";
+    CoreError::error(mach_error_string(kr));
+    return "Unable to read thread state!";
+  }
+
+  return formatRegisterOutput(&oldState);
+}
+
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+std::string Macho::formatRegisterOutput(ThreadState* threadState) const {
+  std::string res{};
+  constexpr int regsPerRow = 4;
+  for (int i = 0; i < 29; i++) {
+    res += std::format(
+        " x{:<2}: {}", i,
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+        detail::toHex(threadState->x[i]));
+    if ((i + 1) % regsPerRow == 0)
+      res += '\n';
+    else
+      res += "  ";
+  }
+
+  res += std::format("\n fp: {} lr: {}\n", detail::toHex(threadState->fp),
+                     detail::toHex(threadState->lr));
+  res += std::format(" sp: {} pc: {}\n", detail::toHex(threadState->sp),
+                     detail::toHex(threadState->pc));
+  res += std::format(" cpsr: {}\n", detail::toHex(threadState->cpsr));
+  return res;
 }

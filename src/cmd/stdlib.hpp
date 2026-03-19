@@ -265,14 +265,24 @@ class TargetFn : public Callable {
 class RegisterFn : public Callable {
  private:
   FnPtr view = [](const std::vector<std::string>& args) -> Object {
-    if (args.empty())
-      return "Please provide one register name to view the contents of it";
+    auto& target = Context::getTarget();
+    if (target && target->m_started)
+      return Context::getTarget()->getRegisters();
+    return "Target is not running!";
   };
+  SubcommandHandler m_subcmds{{{sv("view"), view}}, "register"};
 
  public:
-  [[nodiscard]] int arity() const override { return 2; }
+  [[nodiscard]] int arity() const override { return 1; }
   [[nodiscard]] std::string str() const override {
     return "<native fn: register>";
+  }
+  Object call(std::vector<Object> args) override {
+    std::vector<std::string> convertedArgs = detail::convertToStr(args);
+    if (convertedArgs.empty()) return std::monostate{};
+    const std::string subcmd = convertedArgs.front();
+    convertedArgs.erase(convertedArgs.begin());
+    return m_subcmds.exec(subcmd, convertedArgs);
   }
 };
 

@@ -4,6 +4,7 @@ add_library(caesar_macho STATIC
     ports.hpp
     mach_exc.h
     mach_excServer.h
+    types.hpp
 )
 
 target_include_directories(caesar_macho PUBLIC

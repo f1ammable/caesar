@@ -19,6 +19,7 @@ class Environment {
     this->define("run", std::make_shared<RunFn>(RunFn()));
     this->define("resume", std::make_shared<ContinueFn>(ContinueFn()));
     this->define("target", std::make_shared<TargetFn>(TargetFn()));
+    this->define("register", std::make_shared<RegisterFn>(RegisterFn()));
   }
 
  public:

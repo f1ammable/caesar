@@ -66,6 +66,3 @@ std::string Target::getInfo() {
   return res;
 }
 
-std::string Target::getRegisterInfo() {
-  
-}
