@@ -12,6 +12,7 @@
 #include "callable.hpp"
 #include "cmd/object.hpp"
 #include "cmd/util.hpp"
+#include "core/platform.hpp"
 #include "core/target.hpp"
 #include "error.hpp"
 #include "expected.hpp"
@@ -266,14 +267,19 @@ class RegisterFn : public Callable {
  private:
   FnPtr view = [](const std::vector<std::string>& args) -> Object {
     auto& target = Context::getTarget();
-    if (target && target->m_started)
-      return Context::getTarget()->getRegisters();
-    return "Target is not running!";
+    if (!target && !target->m_started) return "Target is not running!";
+    if (args.front() == "all")
+      return target->formatRegisterOutput(&target->getLastKnownThreadState());
+    auto res = findRegEntry(args.front());
+    if (!res.hasValue()) return res.error();
+    return std::format("{}: {}", args.front(),
+                       detail::toHex(readRegValue(
+                           target->getLastKnownThreadState(), *res.value())));
   };
   SubcommandHandler m_subcmds{{{sv("view"), view}}, "register"};
 
  public:
-  [[nodiscard]] int arity() const override { return 1; }
+  [[nodiscard]] int arity() const override { return 2; }
   [[nodiscard]] std::string str() const override {
     return "<native fn: register>";
   }
