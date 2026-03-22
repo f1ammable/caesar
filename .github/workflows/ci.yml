@@ -15,7 +15,7 @@ env:
 jobs:
   build:
     name: Build and test
-    runs-on: ubuntu-latest
+    runs-on: macos-26
 
     steps:
       - uses: actions/checkout@v4
@@ -24,16 +24,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build ccache
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 21 all
-          sudo update-alternatives --install /usr/bin/clang clang /usr/bin/clang-21 100
-          sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-21 100
-          sudo update-alternatives --install /usr/bin/clang-scan-deps clang-scan-deps /usr/bin/clang-scan-deps-21 100
-          sudo update-alternatives --install /usr/bin/llvm-profdata llvm-profdata /usr/bin/llvm-profdata-21 100
-          sudo update-alternatives --install /usr/bin/llvm-cov llvm-cov /usr/bin/llvm-cov-21 100
+          brew install cmake ninja ccache llvm
+          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
 
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
@@ -51,8 +43,8 @@ jobs:
       - name: Configure CMake
         run: cmake -B build --preset debug -DENABLE_COVERAGE=ON
         env:
-          CC: /usr/bin/clang-21
-          CXX: /usr/bin/clang++-21
+          CC: clang
+          CXX: clang++
           CMAKE_CXX_COMPILER_LAUNCHER: ccache
 
       - name: Build
@@ -81,7 +73,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: ubuntu-latest
+    runs-on: macos-26
     needs: build
 
     steps:
@@ -91,13 +83,8 @@ jobs:
 
       - name: Install system dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y cmake ninja-build
-          wget https://apt.llvm.org/llvm.sh
-          chmod +x llvm.sh
-          sudo ./llvm.sh 21 all
-          sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-21 100
-          sudo update-alternatives --install /usr/bin/clang-format clang-format /usr/bin/clang-format-21 100
+          brew install cmake ninja llvm
+          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
 
       - name: Download build artifacts
         uses: actions/download-artifact@v4
