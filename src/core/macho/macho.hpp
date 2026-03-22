@@ -14,11 +14,9 @@
 #include <fstream>
 #include <string>
 
+#include "core/platform.hpp"
 #include "core/target.hpp"
 #include "core/util.hpp"
-#include "error.hpp"
-#include "expected.hpp"
-#include "types.hpp"
 
 struct CpuTypeNames {
   cpu_type_t cpu_type;
@@ -30,14 +28,12 @@ class Macho final : public Target {
   explicit Macho(std::ifstream f, std::string filePath);
 
 #ifdef __arm64__
-  using ThreadState = ArmThreadState64T;
   static constexpr thread_state_flavor_t THREAD_FLAVOUR = ARM_THREAD_STATE64;
   static constexpr mach_msg_type_number_t THREAD_STATE_COUNT =
       ARM_THREAD_STATE64_COUNT;
 #endif
 
 #ifdef __i386__
-  using ThreadState = X86ThreadState64T;
   static constexpr thread_state_flavor_t THREAD_FLAVOUR = X86_THREAD_STATE64;
   static constexpr mach_msg_type_number_t THREAD_STATE_COUNT =
       X86_THREAD_STATE64_COUNT;
@@ -52,6 +48,8 @@ class Macho final : public Target {
   void eventLoop() override;
   void resume(ResumeType cond) override;
   std::string getRegisters() override;
+  void setThreadState(ThreadState* state) override;
+  ThreadState& getLastKnownThreadState() override;
 
   static std::string exceptionReason(exception_type_t exc,
                                      mach_msg_type_number_t codeCnt,
@@ -61,7 +59,6 @@ class Macho final : public Target {
   void readAslrSlide();
   u64& getAslrSlide();
   i32 restorePrevIns(u64 k);
-  std::string formatRegisterOutput(ThreadState* threadState) const;
 
  private:
   task_t m_task = 0;
@@ -70,6 +67,7 @@ class Macho final : public Target {
   mach_port_t m_exc_port = 0;
   mach_port_t m_thread_port = 0;
   bool m_is_swap = false;
+  ThreadState m_last_thread_state;
   static constexpr std::array<CpuTypeNames, 4> CPU_TYPE_NAMES = {
       {{.cpu_type = CPU_TYPE_I386, .cpu_name = "i386"},
        {.cpu_type = CPU_TYPE_X86_64, .cpu_name = "x86_64"},

@@ -8,7 +8,7 @@
 #include <memory>
 #include <thread>
 
-#include "cmd/object.hpp"
+#include "core/platform.hpp"
 #include "typedefs.hpp"
 #include "util.hpp"
 
@@ -56,6 +56,8 @@ class Target {
   virtual void eventLoop() = 0;
   virtual void resume(ResumeType cond) = 0;
   virtual std::string getRegisters() = 0;
+  virtual void setThreadState(ThreadState* state) = 0;
+  virtual ThreadState& getLastKnownThreadState() = 0;
 
   void setTargetState(TargetState s) { m_state = s; }
   std::atomic<TargetState>& getTargetState() { return m_state; }
@@ -63,6 +65,7 @@ class Target {
   void startEventLoop();
   std::map<u64, Breakpoint>& getRegisteredBreakpoints();
   std::string getInfo();
+  std::string formatRegisterOutput(ThreadState* threadState) const;
 
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);

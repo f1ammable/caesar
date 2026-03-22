@@ -48,6 +48,7 @@
 #include <macho/ports.hpp>
 #include <stdexcept>
 
+#include "platform.hpp"
 #include "target.hpp"
 extern "C" {
 #include "mach_exc.h"
@@ -349,11 +350,14 @@ kern_return_t catch_mach_exception_raise_state_identity(
 #pragma unused(newStateCnt)
   auto& target = Context::getTarget();
   target->setTargetState(TargetState::STOPPED);
+
   task_suspend(task);
+
   auto* macho = dynamic_cast<Macho*>(Context::getTarget().get());
-  auto* oldArmState = reinterpret_cast<ArmThreadState64T*>(oldState);
-  auto* newArmState = reinterpret_cast<ArmThreadState64T*>(newState);
-  memcpy(newArmState, oldArmState, sizeof(ArmThreadState64T));
+  auto* oldArmState = reinterpret_cast<ThreadState*>(oldState);
+  auto* newArmState = reinterpret_cast<ThreadState*>(newState);
+
+  memcpy(newArmState, oldArmState, sizeof(ThreadState));
 
   std::cout << Macho::exceptionReason(exc, codeCnt, code);
   std::cout << macho->formatRegisterOutput(oldArmState);
@@ -374,6 +378,7 @@ kern_return_t catch_mach_exception_raise_state_identity(
     macho->restorePrevIns(oldArmState->pc - macho->getAslrSlide());
   }
 
+  macho->setThreadState(newArmState);
   *newStateCnt = oldStateCnt;
   return KERN_SUCCESS;
 }
@@ -620,6 +625,7 @@ i32 Macho::disableBreakpoint(u64 addr, bool remove) {
   return 0;
 }
 
+// TODO: This needs to return std::unique_ptr<ThreadState>
 std::string Macho::getRegisters() {
   ThreadState oldState;
   mach_msg_type_number_t oldStateCnt = Macho::THREAD_STATE_COUNT;
@@ -636,25 +642,8 @@ std::string Macho::getRegisters() {
   return formatRegisterOutput(&oldState);
 }
 
-// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
-std::string Macho::formatRegisterOutput(ThreadState* threadState) const {
-  std::string res{};
-  constexpr int regsPerRow = 4;
-  for (int i = 0; i < 29; i++) {
-    res += std::format(
-        " x{:<2}: {}", i,
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
-        detail::toHex(threadState->x[i]));
-    if ((i + 1) % regsPerRow == 0)
-      res += '\n';
-    else
-      res += "  ";
-  }
-
-  res += std::format("\n fp: {} lr: {}\n", detail::toHex(threadState->fp),
-                     detail::toHex(threadState->lr));
-  res += std::format(" sp: {} pc: {}\n", detail::toHex(threadState->sp),
-                     detail::toHex(threadState->pc));
-  res += std::format(" cpsr: {}\n", detail::toHex(threadState->cpsr));
-  return res;
+void Macho::setThreadState(ThreadState* state) {
+  memcpy(&m_last_thread_state, state, sizeof(ThreadState));
 }
+
+ThreadState& Macho::getLastKnownThreadState() { return m_last_thread_state; }

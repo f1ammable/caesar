@@ -1,7 +1,8 @@
 #include "target.hpp"
-#include "platform.hpp"
 
 #include <memory>
+
+#include "platform.hpp"
 
 #ifdef __APPLE__
 #include "macho/macho.hpp"
@@ -22,18 +23,18 @@ std::unique_ptr<Target> Target::create(const std::string& path) {
 }
 
 bool Target::isFileValid(const std::string& filePath) {
-  const std::unordered_map<u32, PlatformType> magics{
+  const std::unordered_map<u32, Platform> magics{
       {{byteArrayToInt(MagicBytes{std::byte{0xCF}, std::byte{0xFA},
                                   std::byte{0xED}, std::byte{0xFE}}),
-        PlatformType::MACH},
+        Platform::MACH},
 
        {byteArrayToInt(MagicBytes{std::byte{0x7F}, std::byte{'E'},
                                   std::byte{'L'}, std::byte{'F'}}),
-        PlatformType::LINUX},
+        Platform::LINUX},
 
        {byteArrayToInt(MagicBytes{std::byte{'M'}, std::byte{'Z'}, std::byte{},
                                   std::byte{}}),
-        PlatformType::WIN}}};
+        Platform::WIN}}};
 
   const u32 magicRead = 0;
   std::ifstream f{filePath};
@@ -66,3 +67,25 @@ std::string Target::getInfo() {
   return res;
 }
 
+// NOLINTNEXTLINE(readability-convert-member-functions-to-static)
+std::string Target::formatRegisterOutput(ThreadState* threadState) const {
+  std::string res{};
+  constexpr int regsPerRow = 4;
+  for (int i = 0; i < 29; i++) {
+    res += std::format(
+        " x{:<2}: {}", i,
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+        detail::toHex(threadState->x[i]));
+    if ((i + 1) % regsPerRow == 0)
+      res += '\n';
+    else
+      res += "  ";
+  }
+
+  res += std::format("\n fp: {} lr: {}\n", detail::toHex(threadState->fp),
+                     detail::toHex(threadState->lr));
+  res += std::format(" sp: {} pc: {}\n", detail::toHex(threadState->sp),
+                     detail::toHex(threadState->pc));
+  res += std::format(" cpsr: {}\n", detail::toHex(threadState->cpsr));
+  return res;
+}
