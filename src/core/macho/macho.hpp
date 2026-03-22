@@ -67,7 +67,7 @@ class Macho final : public Target {
   mach_port_t m_exc_port = 0;
   mach_port_t m_thread_port = 0;
   bool m_is_swap = false;
-  ThreadState m_last_thread_state;
+  ThreadState m_last_thread_state{};
   static constexpr std::array<CpuTypeNames, 4> CPU_TYPE_NAMES = {
       {{.cpu_type = CPU_TYPE_I386, .cpu_name = "i386"},
        {.cpu_type = CPU_TYPE_X86_64, .cpu_name = "x86_64"},

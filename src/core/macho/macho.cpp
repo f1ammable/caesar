@@ -81,10 +81,11 @@ void Macho::dumpHeader(int offset) {
     auto header = loadBytesAndMaybeSwap<mach_header_64>(offset);
     ncmds = header.ncmds;
     loadCmdsOffset += headerSize;
-    std::cout << Macho::cpuTypeName(header.cputype) << '\n';
   } else {
-    const int headerSize = sizeof(struct mach_header);
+    constexpr size_t headerSize = sizeof(struct mach_header);
     auto header = loadBytesAndMaybeSwap<mach_header>(offset);
+    ncmds = header.ncmds;
+    loadCmdsOffset += headerSize;
   }
 
   dumpSegmentCommands(loadCmdsOffset, ncmds);
@@ -629,7 +630,7 @@ i32 Macho::disableBreakpoint(u64 addr, bool remove) {
 std::string Macho::getRegisters() {
   ThreadState oldState;
   mach_msg_type_number_t oldStateCnt = Macho::THREAD_STATE_COUNT;
-  kern_return_t kr = thread_get_state(
+  const kern_return_t kr = thread_get_state(
       m_thread_port, Macho::THREAD_FLAVOUR,
       reinterpret_cast<thread_state_t>(&oldState), &oldStateCnt);
 
