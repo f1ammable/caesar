@@ -47,7 +47,6 @@ class Macho final : public Target {
   void detach() override;
   void eventLoop() override;
   void resume(ResumeType cond) override;
-  std::string getRegisters() override;
   void setThreadState(ThreadState* state) override;
   ThreadState& getLastKnownThreadState() override;
 

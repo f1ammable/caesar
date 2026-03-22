@@ -55,7 +55,6 @@ class Target {
   virtual void detach() = 0;
   virtual void eventLoop() = 0;
   virtual void resume(ResumeType cond) = 0;
-  virtual std::string getRegisters() = 0;
   virtual void setThreadState(ThreadState* state) = 0;
   virtual ThreadState& getLastKnownThreadState() = 0;
 
