@@ -626,23 +626,6 @@ i32 Macho::disableBreakpoint(u64 addr, bool remove) {
   return 0;
 }
 
-// TODO: This needs to return std::unique_ptr<ThreadState>
-std::string Macho::getRegisters() {
-  ThreadState oldState;
-  mach_msg_type_number_t oldStateCnt = Macho::THREAD_STATE_COUNT;
-  const kern_return_t kr = thread_get_state(
-      m_thread_port, Macho::THREAD_FLAVOUR,
-      reinterpret_cast<thread_state_t>(&oldState), &oldStateCnt);
-
-  if (kr != KERN_SUCCESS) {
-    std::cout << "thread_get_state fail!\n";
-    CoreError::error(mach_error_string(kr));
-    return "Unable to read thread state!";
-  }
-
-  return formatRegisterOutput(&oldState);
-}
-
 void Macho::setThreadState(ThreadState* state) {
   memcpy(&m_last_thread_state, state, sizeof(ThreadState));
 }
