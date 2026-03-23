@@ -9,6 +9,7 @@
 #include "cmd/util.hpp"
 #include "core/context.hpp"
 #include "core/target.hpp"
+#include "expected.hpp"
 #include "object.hpp"
 #include "typedefs.hpp"
 
@@ -44,20 +45,27 @@ class SubcommandCallable : public Callable {
 
  public:
   Object call(std::vector<Object> args) override {
-    std::vector<std::string> convertedArgs = detail::convertToStr(args);
-    if (convertedArgs.empty()) return std::monostate{};
-    const std::string subcmd = convertedArgs.front();
-    convertedArgs.erase(convertedArgs.begin());
-    return m_subcmds.exec(subcmd, convertedArgs);
+    if (args.empty()) return std::monostate{};
+    auto* subcmdStr = std::get_if<std::string>(&args.front());
+    if (!subcmdStr) return "Subcommand must be a string";
+    std::string subcmd = *subcmdStr;
+    args.erase(args.begin());
+    return m_subcmds.exec(subcmd, args);
   }
 };
 
-inline FnPtr requiresRunningTarget(const FnPtr& fn) {
-  return [fn = fn](const std::vector<std::string>& args) -> Object {
+inline FnPtr requiresRunningTarget(FnPtr fn) {
+  return [fn = std::move(fn)](const std::vector<Object>& args) -> Object {
     auto& target = Context::getTarget();
     if (!target || !target->m_started) return "Target is not running!";
     return fn(args);
   };
+}
+
+template <typename T, typename E, typename Fn>
+auto andThen(Expected<T, E>& exp, Fn&& fn) -> decltype(fn(*exp)) {
+  if (!exp) return Unexpected{exp.error()};
+  return fn(*exp);
 }
 
 #endif

@@ -11,6 +11,7 @@
 
 #include "callable.hpp"
 #include "cmd/object.hpp"
+#include "cmd/util.hpp"
 #include "core/platform.hpp"
 #include "core/target.hpp"
 #include "error.hpp"
@@ -49,12 +50,7 @@ class PrintFn : public Callable {
 
 class BreakpointFn : public SubcommandCallable {
  private:
-  static Object rmOrToggleBreakpoint(const std::vector<std::string>& args,
-                                     bool toggle = false) {
-    Expected<u64, std::string> addrRes = detail::strToAddr(args[0]);
-    if (!addrRes) return addrRes.error();
-    u64 addr = *addrRes;
-
+  static Object rmOrToggleBreakpoint(u64 addr, bool toggle = false) {
     auto& target = Context::getTarget();
     auto& bps = target->getRegisteredBreakpoints();
 
@@ -72,8 +68,8 @@ class BreakpointFn : public SubcommandCallable {
     return std::format("Removed breakpoint at {}", addr);
   }
 
- static inline FnPtr list =
-      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+  static inline FnPtr list =
+      requiresRunningTarget([](const std::vector<Object>& args) -> Object {
 #pragma unused(args)
         auto& breakpoints = Context::getTarget()->getRegisteredBreakpoints();
         std::string retStr{};
@@ -90,26 +86,29 @@ class BreakpointFn : public SubcommandCallable {
       });
 
   static inline FnPtr set =
-      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
-        Expected<u64, std::string> addrRes = detail::strToAddr(args[0]);
-        if (!addrRes) return addrRes.error();
-        const u64 addr = *addrRes;
+      requiresRunningTarget([](const std::vector<Object>& args) -> Object {
+        auto addr = detail::asU64(args.front());
+        if (!addr) return addr.error();
 
-        const i32 bpRes = Context::getTarget()->setBreakpoint(addr);
+        const i32 bpRes = Context::getTarget()->setBreakpoint(*addr);
         if (bpRes != 0)
           return "Error setting breakpoint!";
         else
-          return std::format("Breakpoint set at: {}", detail::toHex(addr));
+          return std::format("Breakpoint set at: {}", detail::toHex(*addr));
       });
 
   static inline FnPtr remove =
-      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
-        return BreakpointFn::rmOrToggleBreakpoint(args, false);
+      requiresRunningTarget([](const std::vector<Object>& args) -> Object {
+        auto addr = detail::asU64(args.front());
+        if (!addr) return addr.error();
+        return BreakpointFn::rmOrToggleBreakpoint(*addr, false);
       });
 
   static inline FnPtr toggle =
-      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
-        return BreakpointFn::rmOrToggleBreakpoint(args, true);
+      requiresRunningTarget([](const std::vector<Object>& args) -> Object {
+        auto addr = detail::asU64(args.front());
+        if (!addr) return addr.error();
+        return BreakpointFn::rmOrToggleBreakpoint(*addr, true);
       });
 
  public:
@@ -214,7 +213,7 @@ class ContinueFn : public Callable {
 
 class TargetFn : public SubcommandCallable {
  private:
-  static inline FnPtr info = [](const std::vector<std::string>& args) -> Object {
+  static inline FnPtr info = [](const std::vector<Object>& args) -> Object {
 #pragma unused(args)
     auto& target = Context::getTarget();
     if (!target) return "Target not set!";
@@ -222,15 +221,18 @@ class TargetFn : public SubcommandCallable {
   };
 
   static inline FnPtr set =
-      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+      requiresRunningTarget([](const std::vector<Object>& args) -> Object {
         auto& target = Context::getTarget();
 
-        if (Target::isFileValid(args[0])) {
-          Context::setTarget(Target::create(args[0]));
-          return std::format("Target: {}", args[0]);
+        auto newTarget = detail::asString(args.front());
+        if (newTarget) return newTarget.error();
+
+        if (Target::isFileValid(*newTarget)) {
+          Context::setTarget(Target::create(*newTarget));
+          return std::format("Target: {}", *newTarget);
         }
 
-        return std::format("{} is not a valid target path!", args[0]);
+        return std::format("{} is not a valid target path!", *newTarget);
       });
 
  public:
@@ -247,29 +249,40 @@ class TargetFn : public SubcommandCallable {
 class RegisterFn : public SubcommandCallable {
  private:
   static inline FnPtr view =
-      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+      requiresRunningTarget([](const std::vector<Object>& args) -> Object {
         auto& target = Context::getTarget();
-        if (args.front() == "all")
+
+        auto reg = detail::asString(args.front());
+        if (*reg == "all")
           return target->formatRegisterOutput(
               &target->getLastKnownThreadState());
-        auto res = findRegEntry(args.front());
-        if (!res) return res.error();
+
+        auto entry = findRegEntry(*reg);
+        if (!entry) return entry.error();
+
         return std::format(
-            "{}: {}", args.front(),
-            detail::toHex(
-                readRegValue(target->getLastKnownThreadState(), *res.value())));
+            "{}: {}", *reg,
+            detail::toHex(readRegValue(target->getLastKnownThreadState(),
+                                       *entry.value())));
       });
 
   static inline FnPtr write =
-      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+      requiresRunningTarget([](const std::vector<Object>& args) -> Object {
         auto& target = Context::getTarget();
-        auto res = findRegEntry(args.front());
-        if (!res) return res.error();
-        auto val = detail::strToAddr(args[1]);
+
+        auto regName = detail::asString(args.front());
+        if (!regName) return regName.error();
+
+        auto entry = findRegEntry(*regName);
+        if (!entry) return entry.error();
+
+        auto val = detail::asU64(args[1]);
         if (!val) return val.error();
-        auto regWriteRes = target->writeRegValue(*res.value(), val.value());
-        if (regWriteRes != 0) return "Error writing to register!";
-        return std::format("{}: {}", args.front(), args[1]);
+
+        if (target->writeRegValue(*entry.value(), *val) != 0)
+          return "Error writing to register!";
+
+        return std::format("{}: {}", *regName, *val);
       });
 
  public:

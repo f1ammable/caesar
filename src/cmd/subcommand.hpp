@@ -24,7 +24,7 @@ class SubcommandHandler {
       const std::string_view callee)
       : m_subcommands(fns), m_callee(callee) {};
 
-  Object exec(const std::string& subcmd, const std::vector<std::string>& args) {
+  Object exec(const std::string& subcmd, const std::vector<Object>& args) {
     if (m_subcommands.contains(subcmd))
       return std::invoke(m_subcommands[subcmd], args);
     CmdError::error(TokenType::IDENTIFIER,
