@@ -365,16 +365,6 @@ kern_return_t catch_mach_exception_raise_state_identity(
 
   if (macho->getThreadPort() == 0) macho->setThreadPort(thread);
 
-  if (exc == EXC_BAD_INSTRUCTION && *flavour == ARM_THREAD_STATE64) {
-    std::cout << std::format(
-        "Fault @ {}!\n",
-        detail::toHex(oldArmState->pc - macho->getAslrSlide()));
-    newArmState->pc += 4;
-    std::cout << std::format(
-        "Resuming @ {}\n",
-        detail::toHex(newArmState->pc - macho->getAslrSlide()));
-  }
-
   if (exc == EXC_BREAKPOINT) {
     macho->restorePrevIns(oldArmState->pc - macho->getAslrSlide());
   }
@@ -631,3 +621,28 @@ void Macho::setThreadState(ThreadState* state) {
 }
 
 ThreadState& Macho::getLastKnownThreadState() { return m_last_thread_state; }
+
+u64 Macho::writeRegValue(const RegEntryT& regEntry, u64 val) {
+  auto* ptr = reinterpret_cast<u8*>(&m_last_thread_state) + regEntry.offset;
+
+  if (regEntry.size == 8) {
+    auto* reg = reinterpret_cast<u64*>(ptr);
+    *reg = val;
+  } else {
+    auto* reg = reinterpret_cast<u32*>(ptr);
+    *reg = val;
+  }
+
+  const kern_return_t kr =
+      thread_set_state(m_thread_port, Macho::THREAD_FLAVOUR,
+                       reinterpret_cast<thread_state_t>(&m_last_thread_state),
+                       Macho::THREAD_STATE_COUNT);
+
+  if (kr != KERN_SUCCESS) {
+    std::cout << "thread_set_state fail!\n";
+    CoreError::error(mach_error_string(kr));
+    return -1;
+  }
+
+  return 0;
+}

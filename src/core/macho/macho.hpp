@@ -49,6 +49,7 @@ class Macho final : public Target {
   void resume(ResumeType cond) override;
   void setThreadState(ThreadState* state) override;
   ThreadState& getLastKnownThreadState() override;
+  u64 writeRegValue(const RegEntryT& regEntry, u64 val) override;
 
   static std::string exceptionReason(exception_type_t exc,
                                      mach_msg_type_number_t codeCnt,

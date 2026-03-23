@@ -57,6 +57,7 @@ class Target {
   virtual void resume(ResumeType cond) = 0;
   virtual void setThreadState(ThreadState* state) = 0;
   virtual ThreadState& getLastKnownThreadState() = 0;
+  virtual u64 writeRegValue(const RegEntryT& regEntry, u64 val) = 0;
 
   void setTargetState(TargetState s) { m_state = s; }
   std::atomic<TargetState>& getTargetState() { return m_state; }

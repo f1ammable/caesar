@@ -276,7 +276,21 @@ class RegisterFn : public Callable {
                        detail::toHex(readRegValue(
                            target->getLastKnownThreadState(), *res.value())));
   };
-  SubcommandHandler m_subcmds{{{sv("view"), view}}, "register"};
+
+  FnPtr write = [](const std::vector<std::string>& args) -> Object {
+    auto& target = Context::getTarget();
+    if (!target && !target->m_started) return "Target is not running!";
+    auto res = findRegEntry(args.front());
+    if (!res.hasValue()) return res.error();
+    auto val = detail::strToAddr(args[1]);
+    if (!val.hasValue()) return val.error();
+    auto regWriteRes = target->writeRegValue(*res.value(), val.value());
+    if (regWriteRes != 0) return "Error writing to register!";
+    return std::format("{}: {}", args.front(), args[1]);
+  };
+
+  SubcommandHandler m_subcmds{{{sv("view"), view}, {sv("write"), write}},
+                              "register"};
 
  public:
   [[nodiscard]] int arity() const override { return 2; }
