@@ -75,11 +75,8 @@ TEST_CASE("Test errors on malformed input", "[scanner]") {
 }
 
 TEST_CASE("Test register variable tokenisation", "[scanner]") {
-  auto [input, expected_lexeme] =
-      GENERATE(table<std::string, std::string>({{"$pc", "$pc"},
-                                                {"$rax", "$rax"},
-                                                {"$sp", "$sp"},
-                                                {"$x0", "$x0"}}));
+  auto [input, expected_lexeme] = GENERATE(table<std::string, std::string>(
+      {{"$pc", "$pc"}, {"$rax", "$rax"}, {"$sp", "$sp"}, {"$x0", "$x0"}}));
 
   auto tokens = helpers::scan(input);
   REQUIRE(helpers::checkTokensSize(tokens.size(), 1));
