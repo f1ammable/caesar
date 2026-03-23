@@ -93,8 +93,8 @@ inline Token makeToken(const std::string& name) {
 }
 
 // Simple subcommand for testing
-inline Object testSubcmd(const std::vector<std::string>& args) {
-  return args.empty() ? std::string("ok") : args[0];
+inline Object testSubcmd(const std::vector<Object>& args) {
+  return args.empty() ? Object{std::string("ok")} : args[0];
 }
 }  // namespace helpers
 

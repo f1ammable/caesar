@@ -35,11 +35,10 @@ TEST_CASE("Test BreakpointFn without target", "[stdlib][breakpoint]") {
 
   SECTION("call when target is null produces error") {
     std::vector<Object> args = {std::string("list")};
-    auto captured = helpers::captureStream(std::cerr, [&bp, &args]() {
-      Object result = bp.call(args);
-      REQUIRE(std::holds_alternative<std::monostate>(result));
-    });
-    REQUIRE(captured.find("Target is not running") != std::string::npos);
+    Object result = bp.call(args);
+    REQUIRE(std::holds_alternative<std::string>(result));
+    REQUIRE(std::get<std::string>(result).find("Target is not running") !=
+            std::string::npos);
   }
 }
 

@@ -174,13 +174,13 @@ TEST_CASE("Test SubcommandHandler exec", "[subcommand][exec]") {
   SubcommandHandler handler({{"test", helpers::testSubcmd}}, "testcmd");
 
   SECTION("Execute valid subcommand") {
-    Object result = handler.exec("test", {"hello"});
+    Object result = handler.exec("test", {std::string("hello")});
     REQUIRE(std::get<std::string>(result) == "hello");
   }
 
   SECTION("Execute invalid subcommand produces error") {
     auto captured = helpers::captureStream(std::cerr, [&handler]() {
-      Object result = handler.exec("invalid", {});
+      Object result = handler.exec("invalid", std::vector<Object>{});
       REQUIRE(std::holds_alternative<std::monostate>(result));
     });
     REQUIRE(captured.find("Subcommand invalid is not valid") !=
