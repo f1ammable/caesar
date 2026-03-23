@@ -73,3 +73,25 @@ TEST_CASE("Test errors on malformed input", "[scanner]") {
     REQUIRE(captured == error_message);
   }
 }
+
+TEST_CASE("Test register variable tokenisation", "[scanner]") {
+  auto [input, expected_lexeme] =
+      GENERATE(table<std::string, std::string>({{"$pc", "$pc"},
+                                                {"$rax", "$rax"},
+                                                {"$sp", "$sp"},
+                                                {"$x0", "$x0"}}));
+
+  auto tokens = helpers::scan(input);
+  REQUIRE(helpers::checkTokensSize(tokens.size(), 1));
+  REQUIRE(tokens[0].m_type == TokenType::IDENTIFIER);
+  REQUIRE(tokens[0].m_lexeme == expected_lexeme);
+}
+
+TEST_CASE("Test register variable in expression", "[scanner]") {
+  auto tokens = helpers::scan("$pc+4");
+  REQUIRE(helpers::checkTokensSize(tokens.size(), 3));
+  REQUIRE(tokens[0].m_type == TokenType::IDENTIFIER);
+  REQUIRE(tokens[0].m_lexeme == "$pc");
+  REQUIRE(tokens[1].m_type == TokenType::PLUS);
+  REQUIRE(tokens[2].m_type == TokenType::NUMBER);
+}
