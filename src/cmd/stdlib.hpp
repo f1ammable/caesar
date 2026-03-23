@@ -74,7 +74,7 @@ class BreakpointFn : public Callable {
     return std::format("Removed breakpoint at {}", addr);
   }
 
-  FnPtr list = [](const std::vector<std::string>& args) -> Object {
+  FnPtr list = requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
 #pragma unused(args)
     auto& breakpoints = Context::getTarget()->getRegisteredBreakpoints();
     std::string retStr{};
@@ -88,9 +88,9 @@ class BreakpointFn : public Callable {
 
     retStr.pop_back();
     return retStr;
-  };
+  });
 
-  FnPtr set = [](const std::vector<std::string>& args) -> Object {
+  FnPtr set = requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
     Expected<u64, std::string> addrRes = detail::strToAddr(args[0]);
     if (!addrRes) return addrRes.error();
     const u64 addr = *addrRes;
@@ -100,15 +100,15 @@ class BreakpointFn : public Callable {
       return "Error setting breakpoint!";
     else
       return std::format("Breakpoint set at: {}", detail::toHex(addr));
-  };
+  });
 
-  FnPtr remove = [](const std::vector<std::string>& args) -> Object {
+  FnPtr remove = requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
     return BreakpointFn::rmOrToggleBreakpoint(args, false);
-  };
+  });
 
-  FnPtr toggle = [](const std::vector<std::string>& args) -> Object {
+  FnPtr toggle = requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
     return BreakpointFn::rmOrToggleBreakpoint(args, true);
-  };
+  });
 
   SubcommandHandler m_subcmds{{{sv("list"), list},
                                {sv("set"), set},
@@ -230,21 +230,17 @@ class TargetFn : public Callable {
     return target->getInfo();
   };
 
-  FnPtr set = [](const std::vector<std::string>& args) -> Object {
-    auto& target = Context::getTarget();
-    if (target) {
-      if (target->getTargetState() == TargetState::RUNNING ||
-          target->getTargetState() == TargetState::STOPPED)
-        return "Cannot set new target whilst one is running!";
-    }
+  FnPtr set =
+      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+        auto& target = Context::getTarget();
 
-    if (Target::isFileValid(args[0])) {
-      Context::setTarget(Target::create(args[0]));
-      return std::format("Target: {}", args[0]);
-    }
+        if (Target::isFileValid(args[0])) {
+          Context::setTarget(Target::create(args[0]));
+          return std::format("Target: {}", args[0]);
+        }
 
-    return std::format("{} is not a valid target path!", args[0]);
-  };
+        return std::format("{} is not a valid target path!", args[0]);
+      });
 
   SubcommandHandler m_subcmds{{{sv("info"), info}, {sv("set"), set}}, "target"};
 
@@ -265,29 +261,31 @@ class TargetFn : public Callable {
 
 class RegisterFn : public Callable {
  private:
-  FnPtr view = [](const std::vector<std::string>& args) -> Object {
-    auto& target = Context::getTarget();
-    if (!target && !target->m_started) return "Target is not running!";
-    if (args.front() == "all")
-      return target->formatRegisterOutput(&target->getLastKnownThreadState());
-    auto res = findRegEntry(args.front());
-    if (!res.hasValue()) return res.error();
-    return std::format("{}: {}", args.front(),
-                       detail::toHex(readRegValue(
-                           target->getLastKnownThreadState(), *res.value())));
-  };
+  FnPtr view =
+      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+        auto& target = Context::getTarget();
+        if (args.front() == "all")
+          return target->formatRegisterOutput(
+              &target->getLastKnownThreadState());
+        auto res = findRegEntry(args.front());
+        if (!res) return res.error();
+        return std::format(
+            "{}: {}", args.front(),
+            detail::toHex(
+                readRegValue(target->getLastKnownThreadState(), *res.value())));
+      });
 
-  FnPtr write = [](const std::vector<std::string>& args) -> Object {
-    auto& target = Context::getTarget();
-    if (!target && !target->m_started) return "Target is not running!";
-    auto res = findRegEntry(args.front());
-    if (!res.hasValue()) return res.error();
-    auto val = detail::strToAddr(args[1]);
-    if (!val.hasValue()) return val.error();
-    auto regWriteRes = target->writeRegValue(*res.value(), val.value());
-    if (regWriteRes != 0) return "Error writing to register!";
-    return std::format("{}: {}", args.front(), args[1]);
-  };
+  FnPtr write =
+      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+        auto& target = Context::getTarget();
+        auto res = findRegEntry(args.front());
+        if (!res) return res.error();
+        auto val = detail::strToAddr(args[1]);
+        if (!val) return val.error();
+        auto regWriteRes = target->writeRegValue(*res.value(), val.value());
+        if (regWriteRes != 0) return "Error writing to register!";
+        return std::format("{}: {}", args.front(), args[1]);
+      });
 
   SubcommandHandler m_subcmds{{{sv("view"), view}, {sv("write"), write}},
                               "register"};

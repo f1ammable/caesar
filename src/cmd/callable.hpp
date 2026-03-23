@@ -8,6 +8,7 @@
 #include "core/context.hpp"
 #include "core/target.hpp"
 #include "object.hpp"
+#include "typedefs.hpp"
 
 class Interpreter;
 
@@ -31,5 +32,13 @@ struct std::formatter<T> {  // NOLINT(cert-dcl58-cpp)
     return std::format_to(ctx.out(), fn.str());
   }
 };
+
+inline FnPtr requiresRunningTarget(const FnPtr& fn) {
+  return [fn = fn](const std::vector<std::string>& args) -> Object {
+    auto& target = Context::getTarget();
+    if (!target || !target->m_started) return "Target is not running!";
+    return fn(args);
+  };
+}
 
 #endif

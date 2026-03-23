@@ -4,13 +4,14 @@
 #include <array>
 #include <cmd/object.hpp>
 #include <cstdint>
+#include <functional>
 
 using u32 = std::uint32_t;
 using i32 = std::int32_t;
 using i64 = std::int64_t;
 using u64 = std::uint64_t;
 using MagicBytes = std::array<std::byte, 4>;
-using FnPtr = Object (*)(const std::vector<std::string>&);
+using FnPtr = std::function<Object(const std::vector<std::string>&)>;
 using sv = std::string_view;
 using u8 = std::uint8_t;
 
