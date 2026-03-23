@@ -69,9 +69,10 @@ This creates a tmux session with editor, compiler, and miscellaneous panes for e
 
 ### Core Debugging Engine
 - **Target**: Process control, breakpoint management, and binary inspection
+- **Register Modification**: View and write register contents
 - **Macho**: Mach-O parser supporting 64-bit architectures and byte swapping
-- **Exception Ports**: Mach-based exception handling for traps and signals
 - **ASLR**: Automatic slide detection for address resolution
+
 
 ## Project Status
 
