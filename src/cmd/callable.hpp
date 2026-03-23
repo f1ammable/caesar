@@ -5,6 +5,8 @@
 #include <format>
 #include <vector>
 
+#include "cmd/subcommand.hpp"
+#include "cmd/util.hpp"
 #include "core/context.hpp"
 #include "core/target.hpp"
 #include "object.hpp"
@@ -30,6 +32,23 @@ struct std::formatter<T> {  // NOLINT(cert-dcl58-cpp)
 
   auto format(const T& fn, std::format_context& ctx) const {
     return std::format_to(ctx.out(), fn.str());
+  }
+};
+
+class SubcommandCallable : public Callable {
+ protected:
+  SubcommandHandler m_subcmds;
+
+  explicit SubcommandCallable(SubcommandHandler subcmds)
+      : m_subcmds(std::move(subcmds)) {}
+
+ public:
+  Object call(std::vector<Object> args) override {
+    std::vector<std::string> convertedArgs = detail::convertToStr(args);
+    if (convertedArgs.empty()) return std::monostate{};
+    const std::string subcmd = convertedArgs.front();
+    convertedArgs.erase(convertedArgs.begin());
+    return m_subcmds.exec(subcmd, convertedArgs);
   }
 };
 

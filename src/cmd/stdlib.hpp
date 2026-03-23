@@ -11,12 +11,10 @@
 
 #include "callable.hpp"
 #include "cmd/object.hpp"
-#include "cmd/util.hpp"
 #include "core/platform.hpp"
 #include "core/target.hpp"
 #include "error.hpp"
 #include "expected.hpp"
-#include "subcommand.hpp"
 #include "token_type.hpp"
 #include "typedefs.hpp"
 
@@ -49,7 +47,7 @@ class PrintFn : public Callable {
   Object call(std::vector<Object> args) override { return args[0]; }
 };
 
-class BreakpointFn : public Callable {
+class BreakpointFn : public SubcommandCallable {
  private:
   static Object rmOrToggleBreakpoint(const std::vector<std::string>& args,
                                      bool toggle = false) {
@@ -74,47 +72,45 @@ class BreakpointFn : public Callable {
     return std::format("Removed breakpoint at {}", addr);
   }
 
-  FnPtr list = requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+ static inline FnPtr list =
+      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
 #pragma unused(args)
-    auto& breakpoints = Context::getTarget()->getRegisteredBreakpoints();
-    std::string retStr{};
+        auto& breakpoints = Context::getTarget()->getRegisteredBreakpoints();
+        std::string retStr{};
 
-    if (breakpoints.empty()) return "No breakpoints set!";
+        if (breakpoints.empty()) return "No breakpoints set!";
 
-    for (const auto& [k, v] : breakpoints) {
-      retStr += std::format("Breakpoint @ {} ({})\n", detail::toHex(k),
-                            breakpoints[k].enabled);
-    }
+        for (const auto& [k, v] : breakpoints) {
+          retStr += std::format("Breakpoint @ {} ({})\n", detail::toHex(k),
+                                breakpoints[k].enabled);
+        }
 
-    retStr.pop_back();
-    return retStr;
-  });
+        retStr.pop_back();
+        return retStr;
+      });
 
-  FnPtr set = requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
-    Expected<u64, std::string> addrRes = detail::strToAddr(args[0]);
-    if (!addrRes) return addrRes.error();
-    const u64 addr = *addrRes;
+  static inline FnPtr set =
+      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+        Expected<u64, std::string> addrRes = detail::strToAddr(args[0]);
+        if (!addrRes) return addrRes.error();
+        const u64 addr = *addrRes;
 
-    const i32 bpRes = Context::getTarget()->setBreakpoint(addr);
-    if (bpRes != 0)
-      return "Error setting breakpoint!";
-    else
-      return std::format("Breakpoint set at: {}", detail::toHex(addr));
-  });
+        const i32 bpRes = Context::getTarget()->setBreakpoint(addr);
+        if (bpRes != 0)
+          return "Error setting breakpoint!";
+        else
+          return std::format("Breakpoint set at: {}", detail::toHex(addr));
+      });
 
-  FnPtr remove = requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
-    return BreakpointFn::rmOrToggleBreakpoint(args, false);
-  });
+  static inline FnPtr remove =
+      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+        return BreakpointFn::rmOrToggleBreakpoint(args, false);
+      });
 
-  FnPtr toggle = requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
-    return BreakpointFn::rmOrToggleBreakpoint(args, true);
-  });
-
-  SubcommandHandler m_subcmds{{{sv("list"), list},
-                               {sv("set"), set},
-                               {sv("remove"), remove},
-                               {sv("toggle"), toggle}},
-                              "breakpoint"};
+  static inline FnPtr toggle =
+      requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
+        return BreakpointFn::rmOrToggleBreakpoint(args, true);
+      });
 
  public:
   [[nodiscard]] int arity() const override { return 1; }
@@ -122,17 +118,12 @@ class BreakpointFn : public Callable {
     return "<native fn: breakpoint>";
   }
 
-  Object call(std::vector<Object> args) override {
-    if (m_target == nullptr) {
-      CoreError::error("Target is not running!");
-      return std::monostate{};
-    }
-    std::vector<std::string> convertedArgs = detail::convertToStr(args);
-    if (convertedArgs.empty()) return std::monostate{};
-    const std::string subcmd = convertedArgs.front();
-    convertedArgs.erase(convertedArgs.begin());
-    return m_subcmds.exec(subcmd, convertedArgs);
-  }
+  BreakpointFn()
+      : SubcommandCallable({{{sv("list"), list},
+                             {sv("set"), set},
+                             {sv("remove"), remove},
+                             {sv("toggle"), toggle}},
+                            "breakpoint"}) {}
 };
 
 class RunFn : public Callable {
@@ -221,16 +212,16 @@ class ContinueFn : public Callable {
   }
 };
 
-class TargetFn : public Callable {
+class TargetFn : public SubcommandCallable {
  private:
-  FnPtr info = [](const std::vector<std::string>& args) -> Object {
+  static inline FnPtr info = [](const std::vector<std::string>& args) -> Object {
 #pragma unused(args)
     auto& target = Context::getTarget();
     if (!target) return "Target not set!";
     return target->getInfo();
   };
 
-  FnPtr set =
+  static inline FnPtr set =
       requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
         auto& target = Context::getTarget();
 
@@ -242,26 +233,20 @@ class TargetFn : public Callable {
         return std::format("{} is not a valid target path!", args[0]);
       });
 
-  SubcommandHandler m_subcmds{{{sv("info"), info}, {sv("set"), set}}, "target"};
-
  public:
   [[nodiscard]] int arity() const override { return 1; }
   [[nodiscard]] std::string str() const override {
     return "<native fn: target>";
   }
 
-  Object call(std::vector<Object> args) override {
-    std::vector<std::string> convertedArgs = detail::convertToStr(args);
-    if (convertedArgs.empty()) return std::monostate{};
-    const std::string subcmd = convertedArgs.front();
-    convertedArgs.erase(convertedArgs.begin());
-    return m_subcmds.exec(subcmd, convertedArgs);
+  TargetFn()
+      : SubcommandCallable({{{sv("info"), info}, {sv("set"), set}}, "target"}) {
   }
 };
 
-class RegisterFn : public Callable {
+class RegisterFn : public SubcommandCallable {
  private:
-  FnPtr view =
+  static inline FnPtr view =
       requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
         auto& target = Context::getTarget();
         if (args.front() == "all")
@@ -275,7 +260,7 @@ class RegisterFn : public Callable {
                 readRegValue(target->getLastKnownThreadState(), *res.value())));
       });
 
-  FnPtr write =
+  static inline FnPtr write =
       requiresRunningTarget([](const std::vector<std::string>& args) -> Object {
         auto& target = Context::getTarget();
         auto res = findRegEntry(args.front());
@@ -287,21 +272,15 @@ class RegisterFn : public Callable {
         return std::format("{}: {}", args.front(), args[1]);
       });
 
-  SubcommandHandler m_subcmds{{{sv("view"), view}, {sv("write"), write}},
-                              "register"};
-
  public:
   [[nodiscard]] int arity() const override { return 2; }
   [[nodiscard]] std::string str() const override {
     return "<native fn: register>";
   }
-  Object call(std::vector<Object> args) override {
-    std::vector<std::string> convertedArgs = detail::convertToStr(args);
-    if (convertedArgs.empty()) return std::monostate{};
-    const std::string subcmd = convertedArgs.front();
-    convertedArgs.erase(convertedArgs.begin());
-    return m_subcmds.exec(subcmd, convertedArgs);
-  }
+
+  RegisterFn()
+      : SubcommandCallable(
+            {{{sv("view"), view}, {sv("write"), write}}, "register"}) {}
 };
 
 #endif
