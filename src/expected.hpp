@@ -18,21 +18,20 @@ class Expected {
 
  public:
   // NOLINTBEGIN(google-explicit-constructor)
-  Expected(const Result& val) : m_data(val) {}
-  Expected(Result&& val) : m_data(std::move(val)) {}
-  Expected(Unexpected<Error> err) : m_data(std::move(err.error)) {}
+  Expected(const Result& val) : m_data(std::in_place_index<0>, val) {}
+  Expected(Result&& val) : m_data(std::in_place_index<0>, std::move(val)) {}
+  Expected(Unexpected<Error> err)
+      : m_data(std::in_place_index<1>, std::move(err.error)) {}
   // NOLINTEND(google-explicit-constructor)
 
-  [[nodiscard]] bool hasValue() const {
-    return std::holds_alternative<Result>(m_data);
-  }
+  [[nodiscard]] bool hasValue() const { return m_data.index() == 0; }
   explicit operator bool() const { return hasValue(); }
 
-  Result& value() { return std::get<Result>(m_data); }
-  const Result& value() const { return std::get<Result>(m_data); }
+  Result& value() { return std::get<0>(m_data); }
+  const Result& value() const { return std::get<0>(m_data); }
 
-  Error& error() { return std::get<Error>(m_data); }
-  const Error& error() const { return std::get<Error>(m_data); }
+  Error& error() { return std::get<1>(m_data); }
+  const Error& error() const { return std::get<1>(m_data); }
 
   Result& operator*() { return value(); }
   Result* operator->() { return &value(); }
