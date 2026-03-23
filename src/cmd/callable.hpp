@@ -62,10 +62,4 @@ inline FnPtr requiresRunningTarget(FnPtr fn) {
   };
 }
 
-template <typename T, typename E, typename Fn>
-auto andThen(Expected<T, E>& exp, Fn&& fn) -> decltype(fn(*exp)) {
-  if (!exp) return Unexpected{exp.error()};
-  return fn(*exp);
-}
-
 #endif
