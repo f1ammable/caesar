@@ -12,6 +12,9 @@
 class Environment {
  private:
   std::map<std::string, Object> m_values;
+
+  static Object getRegister(const Token& reg);
+
   Environment() : m_values({}) {
     this->define("print", std::make_shared<PrintFn>(PrintFn()));
     this->define("len", std::make_shared<LenFn>(LenFn()));

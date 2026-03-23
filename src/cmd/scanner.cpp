@@ -4,6 +4,7 @@
 #include <utility>
 #include <variant>
 
+#include "cmd/token_type.hpp"
 #include "error.hpp"
 #include "token.hpp"
 #include "util.hpp"
@@ -25,6 +26,9 @@ bool Scanner::isAtEnd() const { return m_current >= m_source.length(); }
 void Scanner::scanToken() {
   const char c = advance();
   switch (c) {
+    case '$':
+      identifier();
+      break;
     case '(':
       addToken(TokenType::LEFT_PAREN);
       break;

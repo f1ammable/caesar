@@ -35,6 +35,7 @@ class Scanner {
   void number();
   [[nodiscard]] char peekNext() const;
   void identifier();
+  void registerVariable();
 
  public:
   explicit Scanner(std::string source) noexcept;

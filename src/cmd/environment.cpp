@@ -4,6 +4,8 @@
 #include <utility>
 #include <variant>
 
+#include "core/context.hpp"
+#include "core/platform.hpp"
 #include "error.hpp"
 #include "object.hpp"
 #include "token.hpp"
@@ -22,6 +24,8 @@ void Environment::define(const std::string& name, Object value) {
 }
 
 Object Environment::get(const Token& name) {
+  if (name.m_lexeme[0] == '$') return Environment::getRegister(name);
+
   if (m_values.contains(name.m_lexeme)) return m_values[name.m_lexeme];
   CmdError::error(name.m_type,
                   std::format("Undefined variable '{}'.", name.m_lexeme),
@@ -55,3 +59,20 @@ Environment& Environment::getInstance() {
 }
 
 std::map<std::string, Object> Environment::getAll() { return m_values; }
+
+Object Environment::getRegister(const Token& reg) {
+  auto& target = Context::getTarget();
+
+  std::string regName = reg.m_lexeme;
+  regName.erase(0, 1);
+
+  auto regEntry = findRegEntry(regName);
+  if (!regEntry) {
+    CmdError::error(reg.m_type, "$ prefix can only be used to access registers",
+                    CmdErrorType::RUNTIME_ERROR);
+    return std::monostate{};
+  }
+
+  return static_cast<double>(
+      readRegValue(target->getLastKnownThreadState(), *regEntry.value()));
+}

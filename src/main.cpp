@@ -6,7 +6,6 @@
 #include <cmd/token.hpp>
 #include <core/context.hpp>
 #include <core/target.hpp>
-#include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <error.hpp>
