@@ -112,6 +112,18 @@ void Scanner::string() {
 }
 
 void Scanner::number() {
+  // Check for hex prefix
+  if (peek() == 'x' || peek() == 'X') {
+    advance();
+    while (isxdigit(peek()) != 0) {
+      advance();
+    }
+    const std::string text = m_source.substr(m_start, m_current - m_start);
+    auto value = static_cast<double>(std::stoull(text, nullptr, 16));
+    addToken(TokenType::NUMBER, value);
+    return;
+  }
+
   while (isdigit(peek()) != 0) {
     advance();
   }
