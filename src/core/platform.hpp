@@ -3,7 +3,6 @@
 
 #include <core/macho/types.hpp>
 #include <cstddef>
-#include <type_traits>
 #include <typedefs.hpp>
 #include <unordered_map>
 

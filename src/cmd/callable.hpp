@@ -6,10 +6,8 @@
 #include <vector>
 
 #include "cmd/subcommand.hpp"
-#include "cmd/util.hpp"
 #include "core/context.hpp"
 #include "core/target.hpp"
-#include "expected.hpp"
 #include "object.hpp"
 #include "typedefs.hpp"
 
@@ -47,7 +45,7 @@ class SubcommandCallable : public Callable {
   Object call(std::vector<Object> args) override {
     if (args.empty()) return std::monostate{};
     auto* subcmdStr = std::get_if<std::string>(&args.front());
-    if (!subcmdStr) return "Subcommand must be a string";
+    if (subcmdStr == nullptr) return "Subcommand must be a string";
     std::string subcmd = *subcmdStr;
     args.erase(args.begin());
     return m_subcmds.exec(subcmd, args);

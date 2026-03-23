@@ -349,6 +349,7 @@ kern_return_t catch_mach_exception_raise_state_identity(
 #pragma unused(codeCnt)
 #pragma unused(newState)
 #pragma unused(newStateCnt)
+#pragma unused(flavour)
   auto& target = Context::getTarget();
   target->setTargetState(TargetState::STOPPED);
 
