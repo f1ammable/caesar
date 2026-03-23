@@ -45,7 +45,28 @@ class PrintFn : public Callable {
     return "<native fn: print>";
   }
 
-  Object call(std::vector<Object> args) override { return args[0]; }
+  Object call(std::vector<Object> args) override {
+    enum class FmtOpt : u8 { DEC, HEX };
+
+    FmtOpt fmt = FmtOpt::DEC;
+
+    for (const auto& arg : args) {
+      if (const auto* str = std::get_if<std::string>(&arg)) {
+        if (*str == "hex") {
+          fmt = FmtOpt::HEX;
+        }
+      }
+    }
+
+    switch (fmt) {
+      case FmtOpt::DEC:
+        return args[0];
+      case FmtOpt::HEX:
+        auto val = detail::asU64(args[1]);
+        if (!val) return val.error();
+        return detail::toHex(*val);
+    }
+  }
 };
 
 class BreakpointFn : public SubcommandCallable {
@@ -282,7 +303,7 @@ class RegisterFn : public SubcommandCallable {
         if (target->writeRegValue(*entry.value(), *val) != 0)
           return "Error writing to register!";
 
-        return std::format("{}: {}", *regName, *val);
+        return std::format("{}: {}", *regName, detail::toHex(*val));
       });
 
  public:
