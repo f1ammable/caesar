@@ -1,3 +1,4 @@
+# C++
 .cache
 build/
 vcpkg-manifest-install.log
@@ -11,3 +12,7 @@ coverage/
 *.gcno
 *.gcov
 *.info
+
+# Python
+uv.lock
+.python-version
