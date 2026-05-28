@@ -82,6 +82,7 @@ target_link_libraries(caesar PRIVATE caesar_cmd caesar_core PkgConfig::readline)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     target_link_libraries(caesar PRIVATE caesar_macho)
+    add_custom_command(TARGET caesar POST_BUILD COMMAND codesign --entitlements ../src/Entitlements.plist --force -s - caesar COMMENT "Signing binary with debug permissions")
 endif()
 
 # Optional: Build tests
