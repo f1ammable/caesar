@@ -4,6 +4,7 @@
   "dependencies": [
     "libdwarf",
     "catch2",
-    "readline"
+    "readline",
+    {"name": "capstone", "features": ["arm64", "x86"]}
   ]
 }
