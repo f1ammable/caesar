@@ -23,6 +23,7 @@ class Environment {
     this->define("resume", std::make_shared<ContinueFn>(ContinueFn()));
     this->define("target", std::make_shared<TargetFn>(TargetFn()));
     this->define("register", std::make_shared<RegisterFn>(RegisterFn()));
+    this->define("disasm", std::make_shared<DisassembleFn>(DisassembleFn()));
   }
 
  public:

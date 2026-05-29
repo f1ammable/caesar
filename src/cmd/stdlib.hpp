@@ -317,4 +317,31 @@ class RegisterFn : public SubcommandCallable {
             {{{sv("view"), view}, {sv("write"), write}}, "register"}) {}
 };
 
+class DisassembleFn : public Callable {
+ public:
+  [[nodiscard]] int arity() const override { return 0; }
+  [[nodiscard]] std::string str() const override {
+    return "<native fn: disasm>";
+  }
+  Object call(std::vector<Object> args) override {
+    auto& target = Context::getTarget();
+
+    if (args.size() > 2)
+      return "Please provide a start and end address for disassembly";
+
+    u64 start = 0;
+    u64 end = 0;
+
+    if (args.size() > 0)
+      if (auto r = detail::asU64(args[0])) start = *r;
+    if (args.size() > 1)
+      if (auto r = detail::asU64(args[1])) end = *r;
+    
+    auto res = target->decodeInstructionRange(start, end);
+    if (!res) return res.error();
+
+    return Target::formatDisasmOutput(res.value());
+  }
+};
+
 #endif

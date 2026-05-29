@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "core/util.hpp"
 #include "platform.hpp"
 
 #ifdef __APPLE__
@@ -87,5 +88,15 @@ std::string Target::formatRegisterOutput(ThreadState* threadState) const {
   res += std::format(" sp: {} pc: {}\n", detail::toHex(threadState->sp),
                      detail::toHex(threadState->pc));
   res += std::format(" cpsr: {}\n", detail::toHex(threadState->cpsr));
+  return res;
+}
+
+std::string Target::formatDisasmOutput(
+    const std::vector<DefaultInstruction>& insns) {
+  std::string res{};
+  for (const auto& x : insns) {
+    res += std::format("{} {}\n", detail::toHex(x.addr), x.mnemonic);
+  }
+  res.pop_back();
   return res;
 }

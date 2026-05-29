@@ -48,6 +48,7 @@
 #include <macho/ports.hpp>
 #include <stdexcept>
 
+#include "expected.hpp"
 #include "platform.hpp"
 #include "target.hpp"
 extern "C" {
@@ -646,4 +647,28 @@ u64 Macho::writeRegValue(const RegEntryT& regEntry, u64 val) {
   }
 
   return 0;
+}
+
+Expected<std::vector<DefaultInstruction>, std::string>
+Macho::decodeInstructionRange(u32 s, u32 e) {
+  mach_msg_type_number_t sz = 0;
+  vm_offset_t buf = 0;
+  kern_return_t kr{};
+  u64 start{};
+  u64 end{};
+
+  if (s == 0) start = this->getLastKnownThreadState().pc;
+  if (e == 0) end = start + (sizeof(u32) * 8);
+
+  std::cout << std::format("start disasm: {}, end disasm: {}\n",
+                           detail::toHex(start), detail::toHex(end));
+
+  kr = mach_vm_read(m_task, start, end - start, &buf, &sz);
+
+  if (kr != KERN_SUCCESS)
+    return Unexpected{
+        std::format("Error reading memory: {}!\n", mach_error_string(kr))};
+
+  return CurrentPlatform::Decoder::decode(reinterpret_cast<u32*>(buf), sz,
+                                          start);
 }
