@@ -50,6 +50,8 @@ class Macho final : public Target {
   void setThreadState(ThreadState* state) override;
   ThreadState& getLastKnownThreadState() override;
   u64 writeRegValue(const RegEntryT& regEntry, u64 val) override;
+  Expected<std::vector<DefaultInstruction>, std::string> decodeInstructionRange(
+      u32 start, u32 end) override;
 
   static std::string exceptionReason(exception_type_t exc,
                                      mach_msg_type_number_t codeCnt,

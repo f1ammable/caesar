@@ -7,6 +7,9 @@ add_library(caesar_core STATIC
         target.hpp
         target.cpp
         platform.hpp
+        decoder.hpp
+        decoder.cpp
+        decoder_traits.hpp
 )
 
 target_include_directories(caesar_core PUBLIC
@@ -14,7 +17,8 @@ target_include_directories(caesar_core PUBLIC
 )
 
 find_package(libdwarf CONFIG REQUIRED)
-target_link_libraries(caesar_core PUBLIC libdwarf::dwarf)
+find_package(capstone CONFIG REQUIRED)
+target_link_libraries(caesar_core PUBLIC libdwarf::dwarf PRIVATE capstone::capstone)
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
     add_subdirectory(macho)

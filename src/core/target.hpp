@@ -9,6 +9,7 @@
 #include <thread>
 
 #include "core/platform.hpp"
+#include "decoder.hpp"
 #include "typedefs.hpp"
 #include "util.hpp"
 
@@ -58,6 +59,8 @@ class Target {
   virtual void setThreadState(ThreadState* state) = 0;
   virtual ThreadState& getLastKnownThreadState() = 0;
   virtual u64 writeRegValue(const RegEntryT& regEntry, u64 val) = 0;
+  virtual Expected<std::vector<DefaultInstruction>, std::string>
+  decodeInstructionRange(u32 start, u32 end) = 0;
 
   void setTargetState(TargetState s) { m_state = s; }
   std::atomic<TargetState>& getTargetState() { return m_state; }
@@ -66,6 +69,7 @@ class Target {
   std::map<u64, Breakpoint>& getRegisteredBreakpoints();
   std::string getInfo();
   std::string formatRegisterOutput(ThreadState* threadState) const;
+  static std::string formatDisasmOutput(const std::vector<DefaultInstruction>& insns);
 
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);

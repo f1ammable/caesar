@@ -1,11 +1,13 @@
 #ifndef CAESAR_PLATFORM_H
 #define CAESAR_PLATFORM_H
 
+
 #include <core/macho/types.hpp>
 #include <cstddef>
 #include <typedefs.hpp>
 #include <unordered_map>
 
+#include "core/decoder.hpp"
 #include "expected.hpp"
 
 enum class Platform : u8 { MACH, LINUX, WIN };
@@ -156,6 +158,7 @@ struct PlatformTraits<Architecture::ARM64, Platform::MACH> {
   using RegEnum = Arm64Reg;
   using Entry = RegEntry<RegEnum>;
   using Map = RegMap<RegEnum>;
+  using Decoder = Arm64Decoder;
 
   static inline const Map REG_MAP = {
       {"x0",
