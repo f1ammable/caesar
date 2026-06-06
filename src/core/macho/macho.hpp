@@ -64,7 +64,6 @@ class Macho final : public Target {
 
  private:
   task_t m_task = 0;
-  u64 m_aslr_slide = 0;
   u32 m_magic = 0;
   mach_port_t m_exc_port = 0;
   mach_port_t m_thread_port = 0;

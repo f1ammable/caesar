@@ -9,7 +9,7 @@
 #include "expected.hpp"
 
 Expected<std::vector<DefaultInstruction>, std::string> Arm64Decoder::decode(
-    u32* bytes, size_t size, u32 addr) {
+    u32* bytes, size_t size, u64 addr) {
   csh handle{};
   cs_insn* insn{};
   size_t count{};

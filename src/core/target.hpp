@@ -35,6 +35,7 @@ class Target {
   i32 m_pid = 0;
   std::atomic<TargetState> m_state = TargetState::STOPPED;
   bool m_is_64 = false;
+  u64 m_aslr_slide = 0;
 
   explicit Target(std::ifstream f, std::string filePath)
       : m_file(std::move(f)), m_file_path(std::move(filePath)) {}
@@ -69,8 +70,7 @@ class Target {
   std::map<u64, Breakpoint>& getRegisteredBreakpoints();
   std::string getInfo();
   std::string formatRegisterOutput(ThreadState* threadState) const;
-  static std::string formatDisasmOutput(
-      const std::vector<DefaultInstruction>& insns);
+  std::string formatDisasmOutput(const std::vector<DefaultInstruction>& insns) const;
 
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);
