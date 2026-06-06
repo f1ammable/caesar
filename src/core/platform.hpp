@@ -7,7 +7,7 @@
 #include <typedefs.hpp>
 #include <unordered_map>
 
-#include "core/decoder.hpp"
+class Arm64Decoder;
 #include "expected.hpp"
 
 enum class Platform : u8 { MACH, LINUX, WIN };

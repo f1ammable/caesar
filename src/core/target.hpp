@@ -9,7 +9,7 @@
 #include <thread>
 
 #include "core/platform.hpp"
-#include "decoder.hpp"
+#include "core/decoder.hpp"
 #include "typedefs.hpp"
 #include "util.hpp"
 
@@ -61,7 +61,7 @@ class Target {
   virtual ThreadState& getLastKnownThreadState() = 0;
   virtual u64 writeRegValue(const RegEntryT& regEntry, u64 val) = 0;
   virtual Expected<std::vector<DefaultInstruction>, std::string>
-  decodeInstructionRange(u64 start, u64 end) = 0;
+  decodeInstructionRange(AddrType start, AddrType end) = 0;
 
   void setTargetState(TargetState s) { m_state = s; }
   std::atomic<TargetState>& getTargetState() { return m_state; }

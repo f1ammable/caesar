@@ -16,17 +16,17 @@ double parseNumber(const std::string& str);
 std::vector<std::string> convertToStr(const std::vector<Object>& vec);
 
 // Object extraction helpers
-inline Expected<u64, std::string> asU64(const Object& obj) {
+template <typename T = u64>
+inline Expected<T, std::string> asAddr(const Object& obj) {
   if (const auto* d = std::get_if<double>(&obj)) {
-    return static_cast<u64>(*d);
+    return static_cast<T>(*d);
   }
   if (const auto* s = std::get_if<std::string>(&obj)) {
-    // Try parsing as hex/decimal
     try {
       if (s->starts_with("0x") || s->starts_with("0X")) {
-        return static_cast<u64>(std::stoull(*s, nullptr, 16));
+        return static_cast<T>(std::stoull(*s, nullptr, 16));
       }
-      return static_cast<u64>(std::stoull(*s, nullptr, 10));
+      return static_cast<T>(std::stoull(*s, nullptr, 10));
     } catch (...) {
       return Unexpected{std::format("Cannot parse '{}' as number", *s)};
     }
