@@ -340,7 +340,7 @@ class DisassembleFn : public Callable {
     auto res = target->decodeInstructionRange(start, end);
     if (!res) return res.error();
 
-    return Target::formatDisasmOutput(res.value());
+    return target->formatDisasmOutput(res.value());
   }
 };
 

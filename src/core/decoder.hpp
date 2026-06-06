@@ -19,7 +19,7 @@ using DefaultInstruction = Instruction<>;
 class Arm64Decoder {
  public:
   static Expected<std::vector<DefaultInstruction>, std::string> decode(
-      u32* bytes, size_t size, u32 addr);
+      u32* bytes, size_t size, u64 addr);
 };
 
 #endif  // CAESAR_DECODER_H

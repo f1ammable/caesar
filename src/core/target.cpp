@@ -92,10 +92,11 @@ std::string Target::formatRegisterOutput(ThreadState* threadState) const {
 }
 
 std::string Target::formatDisasmOutput(
-    const std::vector<DefaultInstruction>& insns) {
+    const std::vector<DefaultInstruction>& insns) const {
   std::string res{};
   for (const auto& x : insns) {
-    res += std::format("{} {} {}\n", detail::toHex(x.addr), x.mnemonic, x.op);
+    res += std::format("{} {} {}\n", detail::toHex(x.addr - m_aslr_slide),
+                       x.mnemonic, x.op);
   }
   res.pop_back();
   return res;
