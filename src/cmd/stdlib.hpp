@@ -336,7 +336,7 @@ class DisassembleFn : public Callable {
       if (auto r = detail::asU64(args[0])) start = *r;
     if (args.size() > 1)
       if (auto r = detail::asU64(args[1])) end = *r;
-    
+
     auto res = target->decodeInstructionRange(start, end);
     if (!res) return res.error();
 
