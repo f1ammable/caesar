@@ -9,7 +9,7 @@
 #include "expected.hpp"
 
 Expected<std::vector<DefaultInstruction>, std::string> Arm64Decoder::decode(
-    u32* bytes, size_t size, u64 addr) {
+    u32* bytes, size_t size, AddrType addr) {
   csh handle{};
   cs_insn* insn{};
   size_t count{};
@@ -31,7 +31,7 @@ Expected<std::vector<DefaultInstruction>, std::string> Arm64Decoder::decode(
   std::vector<DefaultInstruction> res{};
   res.reserve(count);
   for (int i = 0; i < count; i++) {
-    DefaultInstruction ins{.addr = static_cast<u64>(insn[i].address),
+    DefaultInstruction ins{.addr = static_cast<AddrType>(insn[i].address),
                            .mnemonic = insn[i].mnemonic,
                            .op = insn[i].op_str};
     std::ranges::copy(insn[i].bytes, ins.insn.begin());

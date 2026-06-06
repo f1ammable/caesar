@@ -650,12 +650,12 @@ u64 Macho::writeRegValue(const RegEntryT& regEntry, u64 val) {
 }
 
 Expected<std::vector<DefaultInstruction>, std::string>
-Macho::decodeInstructionRange(u64 s, u64 e) {
+Macho::decodeInstructionRange(AddrType s, AddrType e) {
   mach_msg_type_number_t sz = 0;
   vm_offset_t buf = 0;
   kern_return_t kr{};
-  u64 start = (s != 0) ? s + m_aslr_slide : this->getLastKnownThreadState().pc;
-  u64 end = (e != 0) ? e + m_aslr_slide + sizeof(u32) : start + (sizeof(u32) * 8);
+  AddrType start = (s != 0) ? s + m_aslr_slide : this->getLastKnownThreadState().pc;
+  AddrType end = (e != 0) ? e + m_aslr_slide + sizeof(u32) : start + (sizeof(u32) * 8);
 
   kr = mach_vm_read(m_task, start, end - start, &buf, &sz);
 
