@@ -11,6 +11,7 @@ struct Instruction {
   u64 addr{};
   std::array<u8, InsSize> insn{};
   std::string mnemonic;
+  std::string op;
 };
 
 using DefaultInstruction = Instruction<>;

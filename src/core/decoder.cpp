@@ -32,7 +32,8 @@ Expected<std::vector<DefaultInstruction>, std::string> Arm64Decoder::decode(
   res.reserve(count);
   for (int i = 0; i < count; i++) {
     DefaultInstruction ins{.addr = static_cast<u64>(insn[i].address),
-                           .mnemonic = insn[i].mnemonic};
+                           .mnemonic = insn[i].mnemonic,
+                           .op = insn[i].op_str};
     std::ranges::copy(insn[i].bytes, ins.insn.begin());
     res.push_back(std::move(ins));
   }

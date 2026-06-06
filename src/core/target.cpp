@@ -95,7 +95,7 @@ std::string Target::formatDisasmOutput(
     const std::vector<DefaultInstruction>& insns) {
   std::string res{};
   for (const auto& x : insns) {
-    res += std::format("{} {}\n", detail::toHex(x.addr), x.mnemonic);
+    res += std::format("{} {} {}\n", detail::toHex(x.addr), x.mnemonic, x.op);
   }
   res.pop_back();
   return res;
