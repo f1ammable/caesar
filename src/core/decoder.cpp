@@ -30,7 +30,7 @@ Expected<std::vector<DefaultInstruction>, std::string> Arm64Decoder::decode(
   // re-disassembling upon disassembling within the same area
   std::vector<DefaultInstruction> res{};
   res.reserve(count);
-  for (int i = 0; i < count; i++) {
+  for (size_t i = 0; i < count; i++) {
     DefaultInstruction ins{.addr = static_cast<AddrType>(insn[i].address),
                            .mnemonic = insn[i].mnemonic,
                            .op = insn[i].op_str};

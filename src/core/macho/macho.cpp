@@ -654,8 +654,10 @@ Macho::decodeInstructionRange(AddrType s, AddrType e) {
   mach_msg_type_number_t sz = 0;
   vm_offset_t buf = 0;
   kern_return_t kr{};
-  AddrType start = (s != 0) ? s + m_aslr_slide : this->getLastKnownThreadState().pc;
-  AddrType end = (e != 0) ? e + m_aslr_slide + sizeof(u32) : start + (sizeof(u32) * 8);
+  const AddrType start =
+      (s != 0) ? s + m_aslr_slide : this->getLastKnownThreadState().pc;
+  const AddrType end =
+      (e != 0) ? e + m_aslr_slide + sizeof(u32) : start + (sizeof(u32) * 8);
 
   kr = mach_vm_read(m_task, start, end - start, &buf, &sz);
 
