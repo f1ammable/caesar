@@ -68,3 +68,21 @@ TEST_CASE("Test ContinueFn properties", "[stdlib][continue]") {
     REQUIRE(cont.str() == "<native fn: continue>");
   }
 }
+
+TEST_CASE("Test DisassembleFn properties", "[stdlib][disasm]") {
+  DisassembleFn disasm;
+
+  SECTION("arity and str") {
+    REQUIRE(disasm.arity() == 0);
+    REQUIRE(disasm.str() == "<native fn: disasm>");
+  }
+
+  SECTION("more than two args returns error string") {
+    std::vector<Object> args = {std::string("0x1000"), std::string("0x2000"),
+                                std::string("extra")};
+    Object result = disasm.call(args);
+    REQUIRE(std::holds_alternative<std::string>(result));
+    REQUIRE(std::get<std::string>(result).find("start and end address") !=
+            std::string::npos);
+  }
+}
