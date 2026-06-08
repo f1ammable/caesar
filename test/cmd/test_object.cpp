@@ -2,6 +2,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <cmd/object.hpp>
+#include <cmd/util.hpp>
+#include <typedefs.hpp>
 #include <variant>
 
 #include "test_helpers.hpp"
@@ -236,4 +238,69 @@ TEST_CASE("Test equality operators between all type combinations",
 
   bool result = op(lhs, rhs);
   REQUIRE(result == expected_result);
+}
+
+TEST_CASE("asAddr converts Object to address", "[object][util][asAddr]") {
+  SECTION("double zero") {
+    auto r = detail::asAddr<u64>(Object{0.0});
+    REQUIRE(r.hasValue());
+    REQUIRE(*r == 0ULL);
+  }
+  SECTION("double positive value") {
+    auto r = detail::asAddr<u64>(Object{4096.0});
+    REQUIRE(r.hasValue());
+    REQUIRE(*r == 4096ULL);
+  }
+  SECTION("hex string lowercase 0x") {
+    auto r = detail::asAddr<u64>(Object{std::string{"0x1000"}});
+    REQUIRE(r.hasValue());
+    REQUIRE(*r == 0x1000ULL);
+  }
+  SECTION("hex string uppercase 0X") {
+    auto r = detail::asAddr<u64>(Object{std::string{"0X1000"}});
+    REQUIRE(r.hasValue());
+    REQUIRE(*r == 0x1000ULL);
+  }
+  SECTION("decimal string") {
+    auto r = detail::asAddr<u64>(Object{std::string{"4096"}});
+    REQUIRE(r.hasValue());
+    REQUIRE(*r == 4096ULL);
+  }
+  SECTION("large 64-bit hex address") {
+    auto r = detail::asAddr<u64>(Object{std::string{"0x100000000"}});
+    REQUIRE(r.hasValue());
+    REQUIRE(*r == 0x100000000ULL);
+  }
+  SECTION("u32 truncates high bits") {
+    auto r = detail::asAddr<u32>(Object{std::string{"0x100000001"}});
+    REQUIRE(r.hasValue());
+    REQUIRE(*r == 1U);
+  }
+  SECTION("invalid string returns error") {
+    auto r = detail::asAddr<u64>(Object{std::string{"notanumber"}});
+    REQUIRE(!r.hasValue());
+    REQUIRE(r.error().find("Cannot parse") != std::string::npos);
+  }
+  SECTION("monostate returns error") {
+    auto r = detail::asAddr<u64>(Object{std::monostate{}});
+    REQUIRE(!r.hasValue());
+    REQUIRE(r.error() == "Expected numeric value");
+  }
+}
+
+TEST_CASE("asString extracts string from Object", "[object][util][asString]") {
+  SECTION("string value") {
+    auto r = detail::asString(Object{std::string{"hello"}});
+    REQUIRE(r.hasValue());
+    REQUIRE(*r == "hello");
+  }
+  SECTION("double returns error") {
+    auto r = detail::asString(Object{42.0});
+    REQUIRE(!r.hasValue());
+    REQUIRE(r.error() == "Expected string");
+  }
+  SECTION("monostate returns error") {
+    auto r = detail::asString(Object{std::monostate{}});
+    REQUIRE(!r.hasValue());
+  }
 }
