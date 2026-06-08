@@ -8,8 +8,8 @@
 #include <memory>
 #include <thread>
 
-#include "core/platform.hpp"
 #include "core/decoder.hpp"
+#include "core/platform.hpp"
 #include "typedefs.hpp"
 #include "util.hpp"
 
@@ -70,7 +70,8 @@ class Target {
   std::map<u64, Breakpoint>& getRegisteredBreakpoints();
   std::string getInfo();
   std::string formatRegisterOutput(ThreadState* threadState) const;
-  std::string formatDisasmOutput(const std::vector<DefaultInstruction>& insns) const;
+  std::string formatDisasmOutput(
+      const std::vector<DefaultInstruction>& insns) const;
 
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);

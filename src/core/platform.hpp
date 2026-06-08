@@ -1,7 +1,6 @@
 #ifndef CAESAR_PLATFORM_H
 #define CAESAR_PLATFORM_H
 
-
 #include <core/macho/types.hpp>
 #include <cstddef>
 #include <typedefs.hpp>
