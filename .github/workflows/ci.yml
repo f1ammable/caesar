@@ -25,7 +25,6 @@ jobs:
       - name: Install system dependencies
         run: |
           brew install cmake ninja ccache llvm
-          echo "$(brew --prefix llvm)/bin" >> $GITHUB_PATH
 
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
