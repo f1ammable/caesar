@@ -37,5 +37,9 @@ Expected<std::vector<DefaultInstruction>, std::string> Arm64Decoder::decode(
     std::ranges::copy(insn[i].bytes, ins.insn.begin());
     res.push_back(std::move(ins));
   }
+
+  cs_free(insn, count);
+  cs_close(&handle);
+
   return res;
 }
