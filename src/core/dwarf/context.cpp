@@ -2,7 +2,9 @@
 
 #include <dwarf.h>
 #include <libdwarf.h>
+#include <limits.h>
 
+#include <array>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -10,37 +12,38 @@
 #include "alloc.hpp"
 
 DwarfContext::DwarfContext(const std::string& path) {
-  Dwarf_Debug raw_dbg = nullptr;
-  Dwarf_Error raw_err = nullptr;
-  int res = dwarf_init_path(path.c_str(), nullptr, 0, DW_GROUPNUMBER_ANY,
-                            nullptr, nullptr, &raw_dbg, &raw_err);
+  Dwarf_Debug rawDbg = nullptr;
+  ScopedDwarfError err{rawDbg};
+  std::array<char, PATH_MAX> truePathBuf{};
+  int res = dwarf_init_path(path.c_str(), truePathBuf.data(),
+                            truePathBuf.size(), DW_GROUPNUMBER_ANY, nullptr,
+                            nullptr, &rawDbg, err.get());
 
   if (res != DW_DLV_OK) {
-    dwarf_dealloc_error(raw_dbg, raw_err);
+    std::cout << dwarf_errmsg(err.raw()) << '\n';
     throw std::runtime_error("Failed to initialise libdwarf");
   }
 
-  m_dbg.reset(raw_dbg, DwarfDebugDeleter{});
+  m_dbg.reset(rawDbg);
 }
 
 void DwarfContext::err(const std::string& msg) {
   throw std::runtime_error(msg);
 }
 
-void DwarfContext::list_funcs_in_die(Dwarf_Debug dbg) {
+void DwarfContext::listFuncsInDie() {
   Dwarf_Unsigned cu_header_length, abbrev_offset, next_cu_header, type_offset;
   Dwarf_Half version_stamp, address_size, length_size, extension_size,
       header_cu_type;
-  Dwarf_Error raw_err;
-  ScopedDwarfError err(&raw_err, m_dbg);
-  Dwarf_Die no_die = 0, cu_die, child_die;
+  ScopedDwarfError err{m_dbg.get()};
+  Dwarf_Die cu_die, child_die;
   Dwarf_Sig8 type_signature;
 
-  int rc = dwarf_next_cu_header_e(dbg, m_is_info, &cu_die, &cu_header_length,
-                                  &version_stamp, &abbrev_offset, &address_size,
-                                  &length_size, &extension_size,
-                                  &type_signature, &type_offset,
-                                  &next_cu_header, &header_cu_type, err.get());
+  int rc = dwarf_next_cu_header_e(
+      m_dbg.get(), static_cast<Dwarf_Bool>(m_is_info), &cu_die,
+      &cu_header_length, &version_stamp, &abbrev_offset, &address_size,
+      &length_size, &extension_size, &type_signature, &type_offset,
+      &next_cu_header, &header_cu_type, err.get());
 
   /* Find compilation unit header */
   if (rc == DW_DLV_ERROR) this->err("Error reading DWARF cu header\n");
@@ -48,36 +51,41 @@ void DwarfContext::list_funcs_in_die(Dwarf_Debug dbg) {
   /* Expect the CU to have a single sibling - a DIE */
   rc = dwarf_siblingof_c(cu_die, &child_die, err.get());
   if (rc == DW_DLV_ERROR) {
-    std::cout << dwarf_errmsg(raw_err) << std::endl;
+    std::cout << DwarfContext::getError(err) << '\n';
     this->err("Error getting sibling of CU\n");
   }
+  if (rc == DW_DLV_OK) dwarf_dealloc_die(child_die);
 
   /* Expect the CU DIE to have children */
   rc = dwarf_child(cu_die, &child_die, err.get());
   if (rc == DW_DLV_ERROR) {
-    std::cout << dwarf_errmsg(raw_err) << std::endl;
+    std::cout << DwarfContext::getError(err) << '\n';
     this->err("Error getting child of CU DIE\n");
   }
 
-  /* Now go over all children DIEs */
-  while (1) {
-    int rc;
-    list_func_in_die(dbg, child_die);
+  dwarf_dealloc_die(cu_die);
 
-    rc = dwarf_siblingof_c(child_die, &child_die, err.get());
+  /* Now go over all children DIEs */
+  while (true) {
+    listFuncInDie(m_dbg.get(), child_die);
+
+    Dwarf_Die sibling_die;
+    rc = dwarf_siblingof_c(child_die, &sibling_die, err.get());
+    dwarf_dealloc_die(child_die);
 
     if (rc == DW_DLV_ERROR)
       this->err("Error getting sibling of DIE\n");
     else if (rc == DW_DLV_NO_ENTRY)
       break; /* done */
+
+    child_die = sibling_die;
   }
 }
 
-void DwarfContext::list_func_in_die(Dwarf_Debug dbg, Dwarf_Die die) {
+void DwarfContext::listFuncInDie(Dwarf_Debug dbg, Dwarf_Die die) {
   char* die_name = 0;
   const char* tag_name = 0;
-  Dwarf_Error raw_err;
-  ScopedDwarfError err(&raw_err, m_dbg);
+  ScopedDwarfError err{m_dbg.get()};
   Dwarf_Half tag;
   Dwarf_Attribute* attrs;
   Dwarf_Addr lowpc = 0, highpc = 0;

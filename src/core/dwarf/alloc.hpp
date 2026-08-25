@@ -10,35 +10,33 @@ struct IDwarfDeleter {
   virtual ~IDwarfDeleter() = default;
 };
 
-struct DwarfDebugDeleter : public IDwarfDeleter {
-  virtual void operator()(void* ptr) const override {
-    if (ptr) dwarf_finish(static_cast<Dwarf_Debug>(ptr));
+template <auto Deleter>
+struct DwarfDeleter {
+  template <typename T>
+  void operator()(T* ptr) const {
+    if (ptr != nullptr) Deleter(ptr);
   };
 };
 
+using DwarfDebugDeleter = DwarfDeleter<dwarf_finish>;
+
 // RAII wrapper for Dwarf_Error
 class ScopedDwarfError {
-  Dwarf_Error* m_err_ptr;
-  std::shared_ptr<Dwarf_Debug_s> m_dbg;
+  Dwarf_Error m_err = nullptr;
+  Dwarf_Debug m_dbg;
 
  public:
-  explicit ScopedDwarfError(Dwarf_Error* err_ptr,
-                            std::shared_ptr<Dwarf_Debug_s> dbg)
-      : m_err_ptr(err_ptr), m_dbg(std::move(dbg)) {
-    *m_err_ptr = nullptr;
-  }
-
+  ScopedDwarfError(const ScopedDwarfError&) = default;
+  ScopedDwarfError(ScopedDwarfError&&) = delete;
+  ScopedDwarfError& operator=(const ScopedDwarfError&) = default;
+  ScopedDwarfError& operator=(ScopedDwarfError&&) = delete;
+  explicit ScopedDwarfError(Dwarf_Debug dbg) : m_dbg(dbg) {}
   ~ScopedDwarfError() {
-    if (*m_err_ptr && m_dbg) {
-      dwarf_dealloc_error(m_dbg.get(), *m_err_ptr);
-    }
+    if (m_err != nullptr) dwarf_dealloc_error(m_dbg, m_err);
   }
-
-  ScopedDwarfError(const ScopedDwarfError&) = delete;
-  ScopedDwarfError& operator=(const ScopedDwarfError&) = delete;
-
-  Dwarf_Error* get() { return m_err_ptr; }
-  operator Dwarf_Error*() { return m_err_ptr; }
+  Dwarf_Error* get() { return &m_err; }
+  [[nodiscard]] Dwarf_Error raw() const { return m_err; }
+  explicit operator Dwarf_Error*() { return &m_err; }
 };
 
 #endif
