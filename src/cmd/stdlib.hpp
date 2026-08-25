@@ -12,6 +12,7 @@
 #include "callable.hpp"
 #include "cmd/object.hpp"
 #include "cmd/util.hpp"
+#include "core/dwarf/context.hpp"
 #include "core/platform.hpp"
 #include "core/target.hpp"
 #include "error.hpp"
@@ -341,6 +342,22 @@ class DisassembleFn : public Callable {
     if (!res) return res.error();
 
     return target->formatDisasmOutput(res.value());
+  }
+};
+
+class SymbolsFn : public Callable {
+ public:
+  [[nodiscard]] int arity() const override { return 0; }
+  [[nodiscard]] std::string str() const override {
+    return "<native fn: symbols>";
+  }
+
+  Object call(std::vector<Object> args) override {
+    auto& target = Context::getTarget();
+    auto dwarf = DwarfContext(target->getFilePath());
+
+    dwarf.listFuncsInDie();
+    return std::monostate{};
   }
 };
 

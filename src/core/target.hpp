@@ -72,6 +72,7 @@ class Target {
   std::string formatRegisterOutput(ThreadState* threadState) const;
   std::string formatDisasmOutput(
       const std::vector<DefaultInstruction>& insns) const;
+  const std::string& getFilePath() const; 
 
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);

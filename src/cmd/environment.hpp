@@ -24,6 +24,7 @@ class Environment {
     this->define("target", std::make_shared<TargetFn>(TargetFn()));
     this->define("register", std::make_shared<RegisterFn>(RegisterFn()));
     this->define("disasm", std::make_shared<DisassembleFn>(DisassembleFn()));
+    this->define("symbols", std::make_shared<SymbolsFn>(SymbolsFn()));
   }
 
  public:

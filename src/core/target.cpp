@@ -1,5 +1,6 @@
 #include "target.hpp"
 
+#include <fstream>
 #include <memory>
 
 #include "core/util.hpp"
@@ -100,4 +101,8 @@ std::string Target::formatDisasmOutput(
   }
   res.pop_back();
   return res;
+}
+
+const std::string& Target::getFilePath() const {
+  return m_file_path;
 }
