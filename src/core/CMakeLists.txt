@@ -3,6 +3,8 @@ add_library(caesar_core STATIC
     dwarf/context.cpp
     dwarf/context.hpp
     dwarf/alloc.hpp
+    dwarf/die.cpp
+    dwarf/die.hpp
         context.hpp
         target.hpp
         target.cpp

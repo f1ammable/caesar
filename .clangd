@@ -1,0 +1,11 @@
+Diagnostics:
+  ClangTidy:
+    # Default is Strict, which silently drops any clang-tidy check clangd
+    # doesn't have a hardcoded "this is fast" answer for - including custom
+    # checks like performance-struct-field-reorder, and likely some of the
+    # broader categories already enabled in .clang-tidy (cert-*,
+    # clang-analyzer-*, etc). Loose runs everything except checks clangd
+    # knows are slow (dataflow-heavy analyzer checks etc); bump to None to
+    # run literally everything .clang-tidy enables, at the cost of editor
+    # responsiveness on large files.
+    FastCheckFilter: Loose
