@@ -110,7 +110,7 @@ const std::string& Target::getFilePath() const { return m_file_path; }
 std::string Target::formatSymbolLookupOutput(
     const std::unique_ptr<DebugInfo>& symbols) {
   std::string res{};
-  for (const auto& x : symbols->getFunctions()) {
+  for (const auto& x : symbols->getSymbols()) {
     res += std::format("name: {}, start addr: {}, end addr: {}\n", x.m_name,
                        detail::toHex(x.m_lowpc), detail::toHex(x.m_highpc));
   }

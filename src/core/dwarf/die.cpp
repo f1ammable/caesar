@@ -4,7 +4,9 @@
 #include <libdwarf.h>
 
 #include <iostream>
+#include <variant>
 
+#include "core/dwarf/alloc.hpp"
 #include "core/dwarf/context.hpp"
 #include "expected.hpp"
 
@@ -18,10 +20,10 @@ DwarfIndex DwarfIndex::build(const std::string& path) {
         cuDieRes) {
       Dwarf_Die cuDie = cuDieRes.value();
 
-      if (index.getFunctionSymbols(ctx, cuDie)) {
-        std::ranges::sort(index.m_fns, {}, &FnInfo::m_lowpc);
-        for (std::size_t i = 0; i < index.m_fns.size(); i++) {
-          index.m_fns_name[index.m_fns[i].m_name] = i;
+      if (index.getSymbols(ctx, cuDie)) {
+        std::ranges::sort(index.m_symbols, {}, &SymInfo::m_lowpc);
+        for (std::size_t i = 0; i < index.m_symbols.size(); i++) {
+          index.m_symbols_name[index.m_symbols[i].m_name] = i;
         }
       }
     }
@@ -72,7 +74,7 @@ Expected<Dwarf_Die, std::string> DwarfIndex::getCUDie(
   return childDie;
 }
 
-Expected<std::monostate, std::string> DwarfIndex::getFunctionSymbols(
+Expected<std::monostate, std::string> DwarfIndex::getSymbols(
     const DwarfContext& ctx, Dwarf_Die childDie) {
   while (true) {
     char* dieName = nullptr;
@@ -81,11 +83,6 @@ Expected<std::monostate, std::string> DwarfIndex::getFunctionSymbols(
     char* symName = nullptr;
     ScopedDwarfError err{ctx.getDbg().get()};
     Dwarf_Half tag = 0;
-    Dwarf_Attribute* attrs = nullptr;
-    Dwarf_Addr lowpc = 0;
-    Dwarf_Addr highpc = 0;
-    Dwarf_Signed attrcount = 0;
-    Dwarf_Signed i = 0;
     int rc = dwarf_diename(childDie, &dieName, err.get());
 
     if (rc == DW_DLV_ERROR)
@@ -100,78 +97,10 @@ Expected<std::monostate, std::string> DwarfIndex::getFunctionSymbols(
     if (dwarf_tag(childDie, &tag, err.get()) != DW_DLV_OK)
       return Unexpected("Error in dwarf_tag\n");
 
-    // TODO: Generalise this function to accept any `DW_TAG_*` as an argument
-    // and capture those
     if (tag == DW_TAG_subprogram) {
-      if (dwarf_get_TAG_name(tag, &tagName) != DW_DLV_OK)
-        return Unexpected("Error in dwarf_get_TAG_name\n");
-
-      if (dwarf_attrlist(childDie, &attrs, &attrcount, err.get()) != DW_DLV_OK)
-        return Unexpected("Error in dwarf_attlist\n");
-
-      for (i = 0; i < attrcount; ++i) {
-        Dwarf_Half attrcode = 0;
-        if (dwarf_whatattr(attrs[i], &attrcode, err.get()) != DW_DLV_OK)
-          return Unexpected("Error in dwarf_whatattr\n");
-
-        // low_pc is always a relative address to the binary whilst high_pc is
-        // an offset to low_pc
-        if (attrcode == DW_AT_low_pc) {
-          Dwarf_Half form = 0;
-          if (dwarf_whatform(attrs[i], &form, err.get()) != DW_DLV_OK) {
-            return Unexpected("Error in dwarf_whatform\n");
-          }
-
-          if (form == DW_FORM_addr || form == DW_FORM_addrx) {
-            int res = dwarf_formaddr(attrs[i], &lowpc, err.get());
-          }
-        } else if (attrcode == DW_AT_high_pc) {
-          Dwarf_Half form = 0;
-          if (dwarf_whatform(attrs[i], &form, err.get()) != DW_DLV_OK)
-            return Unexpected("Error in dwarf_whatform\n");
-
-          if (form == DW_FORM_addr) {
-            int res = dwarf_formaddr(attrs[i], &highpc, err.get());
-          } else {
-            Dwarf_Unsigned offset = 0;
-            int res = dwarf_formudata(attrs[i], &offset, err.get());
-            if (res != DW_DLV_OK)
-              return Unexpected("Error in dwarf_formudata\n");
-            highpc = lowpc + offset;
-          }
-        }
-
-        if (attrcode == DW_AT_name) {
-          Dwarf_Half form = 0;
-          if (dwarf_whatform(attrs[i], &form, err.get()) != DW_DLV_OK)
-            return Unexpected("Error in dwarf_whatform\n");
-          if (form == DW_FORM_string || form == DW_FORM_strp ||
-              form == DW_FORM_strp_sup || form == DW_FORM_line_strp ||
-              form == DW_FORM_strx || form == DW_FORM_strx1 || DW_FORM_strx2 ||
-              form == DW_FORM_strx3 || form == DW_FORM_strx4) {
-            int res = dwarf_formstring(attrs[i], &symName, err.get());
-            if (res != DW_DLV_OK)
-              return Unexpected("Error in dwarf_formstring!\n");
-          }
-        }
-      }
-
-      m_fns.emplace_back(FnInfo{
-          .m_name = std::string(symName),
-          .m_lowpc = lowpc,
-          .m_highpc = highpc,
-      });
+      auto res = resolveFunctionFromTag(ctx, childDie, tag);
+      if (res) m_symbols.emplace_back(std::move(res.value()));
     }
-
-    // Cleanup
-    for (i = 0; i < attrcount; ++i) {
-      Dwarf_Half attrcode = 0;
-      if (dwarf_whatattr(attrs[i], &attrcode, err.get()) != DW_DLV_OK)
-        return Unexpected("Error in dwarf_whatattr\n");
-      if (attrcode == DW_AT_name) continue;
-      dwarf_dealloc_attribute(attrs[i]);
-    }
-    dwarf_dealloc(ctx.getDbg().get(), static_cast<void*>(attrs), DW_DLA_LIST);
 
     rc = dwarf_siblingof_c(childDie, &siblingDie, err.get());
     dwarf_dealloc_die(childDie);
@@ -185,4 +114,147 @@ Expected<std::monostate, std::string> DwarfIndex::getFunctionSymbols(
   }
 
   return std::monostate{};
+}
+
+Expected<SymInfo, std::string> DwarfIndex::resolveFunctionFromTag(
+    const DwarfContext& ctx, Dwarf_Die& die, Dwarf_Half tag) {
+  std::string typeName{};
+  char* symName = nullptr;
+  const char* tagName = nullptr;
+  Dwarf_Attribute* rawAttrs = nullptr;
+  ScopedDwarfError err{ctx.getDbg().get()};
+  Dwarf_Addr lowpc = 0;
+  Dwarf_Addr highpc = 0;
+  Dwarf_Signed i = 0;
+  Dwarf_Signed attrcount = 0;
+
+  if (dwarf_get_TAG_name(tag, &tagName) != DW_DLV_OK)
+    return Unexpected("Error in dwarf_get_TAG_name\n");
+
+  if (dwarf_attrlist(die, &rawAttrs, &attrcount, err.get()) != DW_DLV_OK)
+    return Unexpected("Error in dwarf_attlist\n");
+  ScopedDwarfAttrList attrs{ctx.getDbg().get(), rawAttrs, attrcount};
+
+  for (i = 0; i < attrs.size(); ++i) {
+    Dwarf_Half attrcode = 0;
+    if (dwarf_whatattr(attrs[i], &attrcode, err.get()) != DW_DLV_OK)
+      return Unexpected("Error in dwarf_whatattr\n");
+
+    // low_pc is always a relative address to the binary whilst high_pc is
+    // an offset to low_pc
+    if (attrcode == DW_AT_low_pc) {
+      Dwarf_Half form = 0;
+      if (dwarf_whatform(attrs[i], &form, err.get()) != DW_DLV_OK) {
+        return Unexpected("Error in dwarf_whatform\n");
+      }
+
+      if (form == DW_FORM_addr || form == DW_FORM_addrx) {
+        int res = dwarf_formaddr(attrs[i], &lowpc, err.get());
+      }
+    } else if (attrcode == DW_AT_high_pc) {
+      Dwarf_Half form = 0;
+      if (dwarf_whatform(attrs[i], &form, err.get()) != DW_DLV_OK)
+        return Unexpected("Error in dwarf_whatform\n");
+
+      if (form == DW_FORM_addr) {
+        int res = dwarf_formaddr(attrs[i], &highpc, err.get());
+      } else {
+        Dwarf_Unsigned offset = 0;
+        int res = dwarf_formudata(attrs[i], &offset, err.get());
+        if (res != DW_DLV_OK) return Unexpected("Error in dwarf_formudata\n");
+        highpc = lowpc + offset;
+      }
+    }
+
+    if (attrcode == DW_AT_name) {
+      Dwarf_Half form = 0;
+      if (dwarf_whatform(attrs[i], &form, err.get()) != DW_DLV_OK)
+        return Unexpected("Error in dwarf_whatform\n");
+      if (form == DW_FORM_string || form == DW_FORM_strp ||
+          form == DW_FORM_strp_sup || form == DW_FORM_line_strp ||
+          form == DW_FORM_strx || form == DW_FORM_strx1 || DW_FORM_strx2 ||
+          form == DW_FORM_strx3 || form == DW_FORM_strx4) {
+        int res = dwarf_formstring(attrs[i], &symName, err.get());
+        if (res != DW_DLV_OK) return Unexpected("Error in dwarf_formstring!\n");
+      }
+    }
+
+    if (attrcode == DW_AT_type) {
+      auto res = resolveFunctionTypeRef(ctx, die);
+      if (res) typeName = res.value();
+    }
+  }
+
+
+  return SymInfo{.m_name = std::string{std::format("{} {}", typeName, symName)},
+                 .m_type = SymType::FUN,
+                 .m_lowpc = lowpc,
+                 .m_highpc = highpc};
+}
+
+Expected<std::string, std::string> DwarfIndex::resolveFunctionTypeRef(
+    const DwarfContext& ctx, Dwarf_Die& die) {
+  Dwarf_Die currentDie = die;
+  std::string name;
+  bool haveName = false;
+
+  while (true) {
+    ScopedDwarfError err{ctx.getDbg().get()};
+    Dwarf_Attribute* rawAttrs = nullptr;
+    Dwarf_Signed attrCount = 0;
+
+    if (dwarf_attrlist(currentDie, &rawAttrs, &attrCount, err.get()) !=
+        DW_DLV_OK)
+      return Unexpected("Error in dwarf_attrlist\n");
+    ScopedDwarfAttrList attrs{ctx.getDbg().get(), rawAttrs, attrCount};
+
+    bool hasTypeRef = false;
+    Dwarf_Off nextDieOffset = 0;
+    Dwarf_Bool nextDieIsInfo = 0;
+
+    for (Dwarf_Signed i = 0; i < attrs.size(); i++) {
+      Dwarf_Half attrcode = 0;
+      if (dwarf_whatattr(attrs[i], &attrcode, err.get()) != DW_DLV_OK)
+        return Unexpected("Error in dwarf_whatattr\n");
+
+      Dwarf_Half form = 0;
+      if (dwarf_whatform(attrs[i], &form, err.get()) != DW_DLV_OK)
+        return Unexpected("Error in dwarf_whatform\n");
+
+      if (attrcode == DW_AT_name &&
+          (form == DW_FORM_string || form == DW_FORM_strp ||
+           form == DW_FORM_strp_sup || form == DW_FORM_line_strp ||
+           form == DW_FORM_strx || form == DW_FORM_strx1 ||
+           form == DW_FORM_strx2 || form == DW_FORM_strx3 ||
+           form == DW_FORM_strx4)) {
+        char* rawName = nullptr;
+        if (dwarf_formstring(attrs[i], &rawName, err.get()) != DW_DLV_OK)
+          return Unexpected("Error in dwarf_formstring!\n");
+        name = rawName;
+        haveName = true;
+      }
+
+      if (attrcode == DW_AT_type) {
+        hasTypeRef = true;
+        if (dwarf_global_formref_b(attrs[i], &nextDieOffset, &nextDieIsInfo,
+                                   err.get()) != DW_DLV_OK)
+          return Unexpected("Error in dwarf_global_formref_b\n");
+      }
+    }
+
+    // No further DW_AT_type ref; currentDie is the base type
+    if (!hasTypeRef) break;
+
+    Dwarf_Die nextDie = nullptr;
+    if (dwarf_offdie_b(ctx.getDbg().get(), nextDieOffset, nextDieIsInfo,
+                       &nextDie, err.get()) != DW_DLV_OK)
+      return Unexpected("Error in dwarf_offdie_b\n");
+
+    if (currentDie != die) dwarf_dealloc_die(currentDie);
+    currentDie = nextDie;
+  }
+
+  if (currentDie != die) dwarf_dealloc_die(currentDie);
+  if (!haveName) return Unexpected("Type DIE has no name\n");
+  return name;
 }
