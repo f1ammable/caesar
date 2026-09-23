@@ -6,8 +6,10 @@
 #include <typedefs.hpp>
 #include <unordered_map>
 
-class Arm64Decoder;
 #include "expected.hpp"
+
+class Arm64Decoder;
+class DwarfIndex;
 
 enum class Platform : u8 { MACH, LINUX, WIN };
 enum class Architecture : u8 { ARM64, X86_64, X86 };
@@ -158,6 +160,7 @@ struct PlatformTraits<Architecture::ARM64, Platform::MACH> {
   using Entry = RegEntry<RegEnum>;
   using Map = RegMap<RegEnum>;
   using Decoder = Arm64Decoder;
+  using DebugInfo = DwarfIndex;
 
   static inline const Map REG_MAP = {
       {"x0",
@@ -314,5 +317,7 @@ inline Expected<const RegEntryT*, std::string> findRegEntry(
   if (it != regMap.end()) return &it->second;
   return Unexpected{std::format("Unknown register: {}", name)};
 }
+
+using DebugInfo = CurrentPlatform::DebugInfo;
 
 #endif

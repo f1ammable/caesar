@@ -6,6 +6,7 @@
 #include <memory>
 
 #include "alloc.hpp"
+#include "expected.hpp"
 
 class DwarfContext {
  private:
@@ -13,15 +14,20 @@ class DwarfContext {
   // TODO: true if .debug_info (dwarf > 4)
   bool m_is_info = true;
 
+  explicit DwarfContext(std::unique_ptr<Dwarf_Debug_s, DwarfDebugDeleter> ctx);
+
  public:
-  explicit DwarfContext(const std::string& path);
+  DwarfContext() = default;
+  static Expected<DwarfContext, std::string> create(const std::string& path);
   void listFuncsInDie();
   void listFuncInDie(Dwarf_Debug dbg, Dwarf_Die die);
   [[nodiscard]] auto& getDbg() const { return this->m_dbg; }
   [[nodiscard]] bool getIsInfo() const { return this->m_is_info; }
   ScopedDwarfError makeError() { return ScopedDwarfError(m_dbg.get()); }
-  static char* getError(const ScopedDwarfError& err) { return dwarf_errmsg(err.raw()); }
-  void err(const std::string& msg) const;
+  static char* getError(const ScopedDwarfError& err) {
+    return dwarf_errmsg(err.raw());
+  }
+  [[nodiscard]] const std::string& err(std::string msg) const;
 };
 
 #endif

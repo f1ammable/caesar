@@ -28,17 +28,18 @@ class Target {
   static consteval u32 byteArrayToInt(const MagicBytes& bytes);
 
  protected:
-  std::ifstream m_file;
-  std::string m_file_path;
+  u64 m_aslr_slide = 0;
+  std::unique_ptr<DebugInfo> m_debug_info;
   std::jthread m_waiter;
+  std::string m_file_path;
   std::map<u64, Breakpoint> m_breakpoints;
+  std::ifstream m_file;
   i32 m_pid = 0;
   std::atomic<TargetState> m_state = TargetState::STOPPED;
   bool m_is_64 = false;
-  u64 m_aslr_slide = 0;
 
   explicit Target(std::ifstream f, std::string filePath)
-      : m_file(std::move(f)), m_file_path(std::move(filePath)) {}
+      : m_file_path(std::move(filePath)), m_file(std::move(f)) {}
 
   virtual void readMagic() = 0;
   virtual void is64() = 0;
@@ -72,10 +73,14 @@ class Target {
   std::string formatRegisterOutput(ThreadState* threadState) const;
   std::string formatDisasmOutput(
       const std::vector<DefaultInstruction>& insns) const;
-  const std::string& getFilePath() const; 
-
+  const std::string& getFilePath() const;
+  const std::unique_ptr<DebugInfo>& getDebugInfo() { return m_debug_info; }
+  void setDebugInfo(std::unique_ptr<DebugInfo> info) {
+    m_debug_info = std::move(info);
+  }
   static bool isFileValid(const std::string& filePath);
   static std::unique_ptr<Target> create(const std::string& path);
+  std::string formatSymbolLookupOutput(const std::unique_ptr<DebugInfo>& symbols);
 };
 
 #endif

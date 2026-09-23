@@ -10,6 +10,8 @@
 #include "macho/macho.hpp"
 #endif
 
+#include "core/dwarf/die.hpp"
+
 consteval u32 Target::byteArrayToInt(const MagicBytes& bytes) {
   return (std::to_integer<u32>(bytes[3]) << 24) |
          (std::to_integer<u32>(bytes[2]) << 16) |
@@ -103,6 +105,15 @@ std::string Target::formatDisasmOutput(
   return res;
 }
 
-const std::string& Target::getFilePath() const {
-  return m_file_path;
+const std::string& Target::getFilePath() const { return m_file_path; }
+
+std::string Target::formatSymbolLookupOutput(
+    const std::unique_ptr<DebugInfo>& symbols) {
+  std::string res{};
+  for (const auto& x : symbols->getFunctions()) {
+    res += std::format("name: {}, start addr: {}, end addr: {}\n", x.m_name,
+                       detail::toHex(x.m_lowpc), detail::toHex(x.m_highpc));
+  }
+  res.pop_back();
+  return res;
 }

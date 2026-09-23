@@ -16,6 +16,7 @@ struct Instruction {
   std::string op;
 };
 
+// TODO: Consider moving this to a types.h file scope for `core`
 using AddrType =
     std::conditional_t<getArchitecture() == Architecture::X86, u32, u64>;
 using DefaultInstruction = Instruction<AddrType>;

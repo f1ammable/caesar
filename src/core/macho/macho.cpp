@@ -48,7 +48,9 @@
 #include <macho/ports.hpp>
 #include <stdexcept>
 
+#include "dwarf/die.hpp"
 #include "expected.hpp"
+#include "libdwarf.h"
 #include "platform.hpp"
 #include "target.hpp"
 extern "C" {
@@ -668,3 +670,4 @@ Macho::decodeInstructionRange(AddrType s, AddrType e) {
   return CurrentPlatform::Decoder::decode(reinterpret_cast<u32*>(buf), sz,
                                           start);
 }
+

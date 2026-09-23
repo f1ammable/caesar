@@ -13,6 +13,7 @@
 #include "cmd/object.hpp"
 #include "cmd/util.hpp"
 #include "core/dwarf/context.hpp"
+#include "core/dwarf/die.hpp"
 #include "core/platform.hpp"
 #include "core/target.hpp"
 #include "error.hpp"
@@ -354,10 +355,12 @@ class SymbolsFn : public Callable {
 
   Object call(std::vector<Object> args) override {
     auto& target = Context::getTarget();
-    auto dwarf = DwarfContext(target->getFilePath());
 
-    dwarf.listFuncsInDie();
-    return std::monostate{};
+    if (target) {
+      return target->formatSymbolLookupOutput(target->getDebugInfo());
+    }
+
+    return "no target available for symbol lookup";
   }
 };
 
