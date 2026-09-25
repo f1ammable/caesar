@@ -3,13 +3,7 @@
 
 #include <libdwarf.h>
 
-#include <memory>
 #include <vector>
-
-struct IDwarfDeleter {
-  virtual void operator()(void* ptr) const = 0;
-  virtual ~IDwarfDeleter() = default;
-};
 
 template <auto Deleter>
 struct DwarfDeleter {
@@ -42,6 +36,7 @@ class ScopedDwarfError {
 
 // RAII wrapper for the Dwarf_Attribute list returned by dwarf_attrlist.
 class ScopedDwarfAttrList {
+ private:
   Dwarf_Debug m_dbg;
   Dwarf_Attribute* m_attrs;
   Dwarf_Signed m_count;
@@ -72,6 +67,23 @@ class ScopedDwarfAttrList {
   [[nodiscard]] Dwarf_Signed size() const { return m_count; }
   // Keep attrs[i] alive past this wrapper's destruction
   void keep(Dwarf_Signed i) { m_keep[static_cast<std::size_t>(i)] = true; }
+};
+
+class ScopedDwarfDie {
+ private:
+  Dwarf_Die m_die;
+
+ public:
+  ScopedDwarfDie(const ScopedDwarfDie&) = delete;
+  ScopedDwarfDie(ScopedDwarfDie&&) = delete;
+  ScopedDwarfDie& operator=(const ScopedDwarfDie&) = delete;
+  ScopedDwarfDie& operator=(ScopedDwarfDie&&) = delete;
+  explicit ScopedDwarfDie(Dwarf_Die die) : m_die(die) {}
+  ~ScopedDwarfDie() {
+    if (m_die != nullptr) dwarf_dealloc_die(m_die);
+  }
+
+  Dwarf_Die& get() { return m_die; }
 };
 
 #endif
