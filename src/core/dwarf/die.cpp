@@ -127,6 +127,7 @@ Expected<SymInfo, std::string> DwarfIndex::resolveFunctionFromTag(
   Dwarf_Addr highpc = 0;
   Dwarf_Signed i = 0;
   Dwarf_Signed attrcount = 0;
+  std::string paramName{};
 
   if (dwarf_get_TAG_name(tag, &tagName) != DW_DLV_OK)
     return Unexpected("Error in dwarf_get_TAG_name\n");
@@ -180,19 +181,21 @@ Expected<SymInfo, std::string> DwarfIndex::resolveFunctionFromTag(
     }
 
     if (attrcode == DW_AT_type) {
-      auto res = resolveFunctionTypeRef(ctx, die);
+      auto res = resolveTypeRef(ctx, die);
       if (res) typeName = res.value();
     }
   }
 
+  if (auto res = resolveFunctionParams(ctx, die); res) paramName = res.value();
 
-  return SymInfo{.m_name = std::string{std::format("{} {}", typeName, symName)},
+  return SymInfo{.m_name = std::string{std::format("{} {} {}", typeName,
+                                                   paramName, symName)},
                  .m_type = SymType::FUN,
                  .m_lowpc = lowpc,
                  .m_highpc = highpc};
 }
 
-Expected<std::string, std::string> DwarfIndex::resolveFunctionTypeRef(
+Expected<std::string, std::string> DwarfIndex::resolveTypeRef(
     const DwarfContext& ctx, Dwarf_Die& die) {
   Dwarf_Die currentDie = die;
   std::string name;
@@ -257,4 +260,54 @@ Expected<std::string, std::string> DwarfIndex::resolveFunctionTypeRef(
   if (currentDie != die) dwarf_dealloc_die(currentDie);
   if (!haveName) return Unexpected("Type DIE has no name\n");
   return name;
+}
+
+Expected<std::string, std::string> DwarfIndex::resolveFunctionParams(
+    const DwarfContext& ctx, Dwarf_Die& fnDie) {
+  Dwarf_Die child = nullptr;
+  ScopedDwarfError err{ctx.getDbg().get()};
+  std::string paramList{"("};
+  bool haveParam = false;
+
+  int res = dwarf_child(fnDie, &child, err.get());
+
+  if (res == DW_DLV_NO_ENTRY)
+    return Expected<std::string, std::string>{"()"};
+  else if (res != DW_DLV_OK)
+    return Unexpected("Error in dwarf_child\n");
+
+  while (true) {
+    Dwarf_Die sibling = nullptr;
+    Dwarf_Half tag = 0;
+    if (dwarf_tag(child, &tag, err.get()) != DW_DLV_OK) {
+      dwarf_dealloc_die(child);
+      return Unexpected("Error in dwarf_tag\n");
+    }
+
+    if (tag == DW_TAG_formal_parameter) {
+      if (auto res = resolveTypeRef(ctx, child); res) {
+        paramList += std::format("{}, ", res.value());
+        haveParam = true;
+      }
+    }
+
+    res = dwarf_siblingof_c(child, &sibling, err.get());
+    dwarf_dealloc_die(child);
+
+    if (res == DW_DLV_NO_ENTRY)
+      break;
+    else if (res != DW_DLV_OK)
+      return Unexpected("Error in dwarf_siblingof_c\n");
+
+    child = sibling;
+  }
+
+  if (haveParam) {
+    paramList.pop_back();
+    paramList.pop_back();
+  }
+
+  paramList += ")";
+
+  return paramList;
 }

@@ -28,8 +28,10 @@ class DwarfIndex {
   Expected<SymInfo, std::string> resolveFunctionFromTag(const DwarfContext& ctx,
                                                         Dwarf_Die& die,
                                                         Dwarf_Half tag);
-  Expected<std::string, std::string> resolveFunctionTypeRef(
+  Expected<std::string, std::string> resolveTypeRef(
       const DwarfContext& ctx, Dwarf_Die& die);
+
+  Expected<std::string, std::string> resolveFunctionParams(const DwarfContext& ctx, Dwarf_Die& fnDie);
 
   Expected<std::monostate, std::string> getSymbols(const DwarfContext& ctx,
                                                    Dwarf_Die childDie);
