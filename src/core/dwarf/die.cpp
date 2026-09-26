@@ -199,10 +199,17 @@ Expected<std::string, std::string> DwarfIndex::resolveTypeRef(
     const DwarfContext& ctx, Dwarf_Die& die) {
   Dwarf_Die currentDie = die;
   std::string name;
+  std::string qualifiers{};
+  std::string arraySuffix{};
+  int ptrCount = 0;
   bool haveName = false;
 
   while (true) {
     ScopedDwarfError err{ctx.getDbg().get()};
+    Dwarf_Half tag = 0;
+    if (dwarf_tag(currentDie, &tag, err.get()) != DW_DLV_OK)
+      return Unexpected("Error in dwarf_tag\n");
+
     Dwarf_Attribute* rawAttrs = nullptr;
     Dwarf_Signed attrCount = 0;
 
@@ -245,8 +252,21 @@ Expected<std::string, std::string> DwarfIndex::resolveTypeRef(
       }
     }
 
+    if (tag == DW_TAG_pointer_type) {
+      ++ptrCount;
+    } else if (tag == DW_TAG_array_type) {
+      arraySuffix += "[]";
+    } else if (tag == DW_TAG_const_type) {
+      qualifiers += "const ";
+    } else if (tag == DW_TAG_volatile_type) {
+      qualifiers += "volatile ";
+    }
+
     // No further DW_AT_type ref; currentDie is the base type
-    if (!hasTypeRef) break;
+    if (!hasTypeRef) {
+      if (currentDie != die) dwarf_dealloc_die(currentDie);
+      break;
+    }
 
     Dwarf_Die nextDie = nullptr;
     if (dwarf_offdie_b(ctx.getDbg().get(), nextDieOffset, nextDieIsInfo,
@@ -257,9 +277,12 @@ Expected<std::string, std::string> DwarfIndex::resolveTypeRef(
     currentDie = nextDie;
   }
 
-  if (currentDie != die) dwarf_dealloc_die(currentDie);
   if (!haveName) return Unexpected("Type DIE has no name\n");
-  return name;
+
+  std::string result = qualifiers + name;
+  if (ptrCount > 0) result += " " + std::string(ptrCount, '*');
+  result += arraySuffix;
+  return result;
 }
 
 Expected<std::string, std::string> DwarfIndex::resolveFunctionParams(
